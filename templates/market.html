@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Card Market</h1>
+
+<div class="section">
+  <form method="get" action="/market" style="display:flex;gap:12px;align-items:flex-end;">
+    <div class="form-group" style="margin:0;flex:1;">
+      <label>Browse by set</label>
+      <select name="set_name" onchange="this.form.submit()">
+        {% for s in sets %}
+          <option value="{{ s }}" {% if s == selected_set %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </form>
+</div>
+
+{% if cards %}
+  <div class="card-grid">
+    {% for card in cards %}
+      <div class="card">
+        <img src="/card-image/{{ card.card_id }}" alt="{{ card.card_name }}"
+             loading="lazy"
+             style="width:100%;border-radius:6px;margin-bottom:10px;background:#0f3460;"
+             onerror="this.style.display='none'" />
+        <div class="card-name">{{ card.card_name }}</div>
+        <div class="card-meta">Type: {{ card.card_type }}</div>
+        <div class="rarity" style="margin-top:8px;">
+          {% if 'Holo' in card.rarity %}
+            <span class="badge badge-holo">{{ card.rarity }}</span>
+          {% elif 'Ultra' in card.rarity %}
+            <span class="badge badge-ultra">{{ card.rarity }}</span>
+          {% elif 'Common' in card.rarity %}
+            <span class="badge badge-common">{{ card.rarity }}</span>
+          {% else %}
+            <span class="badge badge-rare">{{ card.rarity }}</span>
+          {% endif %}
+        </div>
+        {% if card.market_price_usd is not none %}
+          <div class="card-meta" style="margin-top:8px;color:#6fcf97;font-weight:bold;">
+            ${{ "%.2f"|format(card.market_price_usd) }} USD
+          </div>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <p style="color:#888;">No cards in the read store yet — wait for the sync service to populate the catalog.</p>
+{% endif %}
+{% endblock %}

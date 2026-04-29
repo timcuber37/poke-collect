@@ -1,0 +1,11 @@
+flask==3.0.3
+python-dotenv==1.0.1
+requests==2.32.3
+sqlalchemy==2.0.30
+mysql-connector-python==8.4.0
+kafka-python-ng==2.2.3
+cassandra-driver==3.29.1
+psycopg2-binary==2.9.9
+pgvector==0.3.2
+sentence-transformers==3.0.1
+ollama==0.3.0

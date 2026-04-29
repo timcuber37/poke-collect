@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PokéCollect</title>
+  <style>
+    *           { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body  { height: 100%; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0a0a0a;
+      color: #f5f5f5;
+      min-height: 100vh;
+    }
+
+    /* ---- Top bar ---- */
+    .topbar {
+      position: sticky; top: 0; z-index: 50;
+      display: grid;
+      grid-template-columns: 200px 1fr 200px;
+      align-items: center;
+      gap: 24px;
+      padding: 16px 32px;
+      background: #0a0a0a;
+      border-bottom: 1px solid #1f1f1f;
+    }
+    .brand {
+      font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em;
+      color: #fff; text-decoration: none;
+    }
+    .brand-dot { color: #888; }
+
+    .search-form {
+      display: flex; align-items: center;
+      background: #141414;
+      border: 1px solid #262626;
+      border-radius: 24px;
+      padding: 0 16px;
+      transition: border-color 0.15s;
+    }
+    .search-form:focus-within { border-color: #555; }
+    .search-form input {
+      flex: 1; padding: 10px 0;
+      background: transparent; border: none; outline: none;
+      color: #fff; font-size: 0.95rem;
+    }
+    .search-form input::placeholder { color: #666; }
+    .search-form button {
+      background: transparent; border: none; cursor: pointer;
+      color: #888; font-size: 1rem; padding: 4px 0 4px 8px;
+    }
+    .search-form button:hover { color: #fff; }
+
+    /* ---- Profile dropdown ---- */
+    .profile-wrap { position: relative; justify-self: end; }
+    .profile-btn {
+      display: flex; align-items: center; gap: 8px;
+      background: #141414; border: 1px solid #262626;
+      padding: 8px 14px; border-radius: 20px;
+      color: #f5f5f5; font-size: 0.9rem; cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .profile-btn:hover { border-color: #555; }
+    .profile-avatar {
+      width: 24px; height: 24px; border-radius: 50%;
+      background: #fff; color: #000;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 0.75rem;
+    }
+    .profile-menu {
+      display: none;
+      position: absolute; top: calc(100% + 8px); right: 0;
+      min-width: 200px;
+      background: #141414;
+      border: 1px solid #262626;
+      border-radius: 8px;
+      padding: 6px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    .profile-menu.open { display: block; }
+    .profile-menu .menu-label {
+      font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em;
+      color: #666; padding: 8px 12px 4px;
+    }
+    .profile-menu a {
+      display: block; padding: 8px 12px;
+      color: #ddd; text-decoration: none; font-size: 0.9rem;
+      border-radius: 4px;
+    }
+    .profile-menu a:hover { background: #1f1f1f; color: #fff; }
+    .profile-menu .divider { height: 1px; background: #262626; margin: 6px 0; }
+
+    /* ---- Layout ---- */
+    .container { max-width: 1100px; margin: 0 auto; padding: 32px; }
+
+    h1 { font-size: 1.6rem; margin-bottom: 24px; font-weight: 600; }
+    h2 { font-size: 1.1rem; margin-bottom: 12px; color: #ddd; font-weight: 500; }
+
+    /* ---- Cards / grid ---- */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 20px;
+    }
+    .card {
+      background: #141414;
+      border: 1px solid #1f1f1f;
+      border-radius: 10px;
+      padding: 16px;
+      transition: border-color 0.15s, transform 0.15s;
+    }
+    .card:hover { border-color: #444; transform: translateY(-2px); }
+    .card img { width: 100%; border-radius: 6px; margin-bottom: 12px; background: #0a0a0a; }
+    .card .card-name  { font-weight: 600; font-size: 0.95rem; color: #fff; }
+    .card .card-meta  { font-size: 0.8rem; color: #888; margin-top: 4px; }
+    .card .price      { color: #fff; font-weight: 600; margin-top: 8px; font-size: 0.9rem; }
+
+    .badge {
+      display: inline-block; padding: 2px 8px;
+      border-radius: 10px; font-size: 0.7rem; font-weight: 500;
+      background: #1f1f1f; color: #ccc; margin-top: 8px;
+    }
+
+    /* ---- Forms / buttons ---- */
+    .btn {
+      padding: 8px 14px; background: #fff; color: #000;
+      border: none; border-radius: 6px; cursor: pointer;
+      font-size: 0.85rem; font-weight: 500;
+    }
+    .btn:hover { background: #ddd; }
+    .btn-secondary { background: #1f1f1f; color: #fff; }
+    .btn-secondary:hover { background: #2a2a2a; }
+    .btn-danger { background: transparent; color: #888; border: 1px solid #2a2a2a; }
+    .btn-danger:hover { color: #fff; border-color: #fff; }
+
+    select, input[type=text] {
+      padding: 8px 10px; background: #141414;
+      border: 1px solid #262626; color: #fff;
+      border-radius: 6px; font-size: 0.9rem;
+    }
+
+    .empty-state { color: #666; text-align: center; padding: 60px 20px; }
+
+    /* ---- Floating chat widget ---- */
+    .chat-fab {
+      position: fixed; bottom: 24px; right: 24px;
+      width: 56px; height: 56px; border-radius: 50%;
+      background: #fff; color: #000;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 1.4rem;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+      z-index: 100; border: none;
+      transition: transform 0.15s;
+    }
+    .chat-fab:hover { transform: scale(1.05); }
+
+    .chat-panel {
+      display: none;
+      position: fixed; bottom: 96px; right: 24px;
+      width: 360px; max-width: calc(100vw - 48px);
+      height: 480px; max-height: calc(100vh - 120px);
+      background: #141414; border: 1px solid #262626;
+      border-radius: 12px; z-index: 100;
+      flex-direction: column;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+    }
+    .chat-panel.open { display: flex; }
+    .chat-header {
+      padding: 14px 16px;
+      border-bottom: 1px solid #262626;
+      font-weight: 600; color: #fff; font-size: 0.9rem;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .chat-header .close-btn {
+      background: none; border: none; color: #888; cursor: pointer;
+      font-size: 1.2rem; padding: 0;
+    }
+    .chat-log {
+      flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 8px;
+    }
+    .chat-msg { padding: 8px 12px; border-radius: 12px; max-width: 85%; font-size: 0.85rem; line-height: 1.4; }
+    .chat-msg.user      { background: #fff; color: #000; align-self: flex-end; }
+    .chat-msg.assistant { background: #1f1f1f; color: #ddd; align-self: flex-start; }
+    .chat-msg.thinking  { color: #666; font-style: italic; }
+    .chat-input {
+      padding: 12px; border-top: 1px solid #262626;
+      display: flex; gap: 8px;
+    }
+    .chat-input input {
+      flex: 1; padding: 8px 12px; background: #0a0a0a;
+      border: 1px solid #262626; border-radius: 18px;
+      color: #fff; outline: none; font-size: 0.85rem;
+    }
+    .chat-input input:focus { border-color: #555; }
+    .chat-input button {
+      background: #fff; color: #000; border: none;
+      padding: 8px 14px; border-radius: 18px; cursor: pointer;
+      font-size: 0.85rem; font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/">Poké<span class="brand-dot">·</span>Collect</a>
+
+    <form class="search-form" action="/" method="get" role="search">
+      <input type="text" name="q" placeholder="Search Pokémon cards..."
+             value="{{ request.args.get('q', '') }}" autocomplete="off" />
+      <button type="submit">↵</button>
+    </form>
+
+    <div class="profile-wrap">
+      <button class="profile-btn" onclick="toggleProfile()">
+        {% if current_user %}
+          <span class="profile-avatar">{{ current_user.username[:1]|upper }}</span>
+          <span>{{ current_user.username }}</span>
+        {% else %}
+          <span class="profile-avatar">?</span>
+          <span>Sign in</span>
+        {% endif %}
+      </button>
+      <div class="profile-menu" id="profileMenu">
+        {% if current_user %}
+          <a href="/collection">My Collection</a>
+          <div class="divider"></div>
+          <div class="menu-label">Switch user</div>
+          {% for u in all_users if u.user_id != current_user.user_id %}
+            <a href="/login/{{ u.user_id }}">{{ u.username }}</a>
+          {% endfor %}
+          <div class="divider"></div>
+          <a href="/logout">Sign out</a>
+        {% else %}
+          <div class="menu-label">Sign in as</div>
+          {% for u in all_users %}
+            <a href="/login/{{ u.user_id }}">{{ u.username }}</a>
+          {% endfor %}
+        {% endif %}
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Floating chat widget -->
+  <button class="chat-fab" onclick="toggleChat()" title="Ask AI">✦</button>
+  <div class="chat-panel" id="chatPanel">
+    <div class="chat-header">
+      <span>Ask about your collection</span>
+      <button class="close-btn" onclick="toggleChat()">×</button>
+    </div>
+    <div class="chat-log" id="chatLog">
+      <div class="chat-msg assistant">Hi — ask me anything about your Pokémon card collection.</div>
+    </div>
+    <div class="chat-input">
+      <input id="chatInput" type="text" placeholder="Ask a question..."
+             onkeydown="if(event.key==='Enter') chatSend()" />
+      <button onclick="chatSend()">Send</button>
+    </div>
+  </div>
+
+  <script>
+    function toggleProfile() {
+      document.getElementById("profileMenu").classList.toggle("open");
+    }
+    document.addEventListener("click", (e) => {
+      if (!e.target.closest(".profile-wrap")) {
+        document.getElementById("profileMenu").classList.remove("open");
+      }
+    });
+
+    function toggleChat() {
+      document.getElementById("chatPanel").classList.toggle("open");
+    }
+
+    async function chatSend() {
+      const input    = document.getElementById("chatInput");
+      const question = input.value.trim();
+      if (!question) return;
+      const log = document.getElementById("chatLog");
+
+      log.insertAdjacentHTML("beforeend", `<div class="chat-msg user">${question}</div>`);
+      input.value = "";
+      log.scrollTop = log.scrollHeight;
+
+      const thinking = document.createElement("div");
+      thinking.className = "chat-msg assistant thinking";
+      thinking.textContent = "Thinking...";
+      log.appendChild(thinking);
+      log.scrollTop = log.scrollHeight;
+
+      try {
+        const r = await fetch("/chat/ask", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body:    JSON.stringify({ question }),
+        });
+        const data = await r.json();
+        thinking.remove();
+        log.insertAdjacentHTML("beforeend",
+          `<div class="chat-msg assistant">${(data.answer || data.error)}</div>`);
+        log.scrollTop = log.scrollHeight;
+      } catch (e) {
+        thinking.remove();
+        log.insertAdjacentHTML("beforeend",
+          `<div class="chat-msg assistant">Error reaching the AI. Is Ollama running?</div>`);
+      }
+    }
+  </script>
+</body>
+</html>

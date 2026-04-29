@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ current_user.username }}'s Collection</h1>
+
+{% if cards %}
+  <div class="card-grid">
+    {% for card in cards %}
+      <div class="card">
+        <img src="/card-image/{{ card.card_id }}" alt="{{ card.card_name }}"
+             loading="lazy" onerror="this.style.display='none'" />
+        <div class="card-name">{{ card.card_name }}</div>
+        <div class="card-meta">{{ card.set_name }}</div>
+        <span class="badge">{{ card.rarity }}</span>
+        {% if card.market_price_usd is not none %}
+          <div class="price">${{ "%.2f"|format(card.market_price_usd) }}</div>
+        {% endif %}
+        <div class="card-meta" style="margin-top:6px;">{{ card.condition }}</div>
+        <form method="post" action="/commands/remove-card" style="margin-top:10px;">
+          <input type="hidden" name="collection_id" value="{{ card.collection_id }}" />
+          <button class="btn-danger btn" type="submit" style="width:100%;font-size:0.8rem;padding:6px;">
+            Remove
+          </button>
+        </form>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="empty-state">
+    Your collection is empty. <a href="/" style="color:#fff;text-decoration:underline;">Search</a> for cards to add.
+  </div>
+{% endif %}
+{% endblock %}

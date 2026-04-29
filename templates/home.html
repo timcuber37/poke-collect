@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block content %}
+
+{% if not query %}
+  <div style="text-align:center;padding:80px 20px;">
+    <h1 style="font-size:2.4rem;font-weight:700;letter-spacing:-0.02em;">Find any card.</h1>
+    <p style="color:#888;margin-top:12px;font-size:1rem;">
+      Search the Scarlet &amp; Violet catalog and add cards to your collection.
+    </p>
+  </div>
+{% else %}
+  <h1 style="font-size:1.2rem;font-weight:500;color:#aaa;margin-bottom:24px;">
+    {{ results|length }} result{{ '' if results|length == 1 else 's' }} for "{{ query }}"
+  </h1>
+
+  {% if results %}
+    <div class="card-grid">
+      {% for card in results %}
+        <div class="card">
+          <img src="/card-image/{{ card.pokewallet_id }}" alt="{{ card.card_name }}"
+               loading="lazy" onerror="this.style.display='none'" />
+          <div class="card-name">{{ card.card_name }}</div>
+          <div class="card-meta">{{ card.set_name }}</div>
+          <span class="badge">{{ card.rarity }}</span>
+          {% if card.market_price_usd is not none %}
+            <div class="price">${{ "%.2f"|format(card.market_price_usd) }}</div>
+          {% endif %}
+
+          {% if current_user %}
+            <form method="post" action="/commands/add-from-search" style="margin-top:12px;">
+              <input type="hidden" name="pokewallet_id"    value="{{ card.pokewallet_id }}" />
+              <input type="hidden" name="card_name"        value="{{ card.card_name }}" />
+              <input type="hidden" name="set_name"         value="{{ card.set_name }}" />
+              <input type="hidden" name="rarity"           value="{{ card.rarity }}" />
+              <input type="hidden" name="card_type"        value="{{ card.card_type }}" />
+              <input type="hidden" name="market_price_usd" value="{{ card.market_price_usd or '' }}" />
+              <button class="btn" type="submit" style="width:100%;">+ Add to Collection</button>
+            </form>
+          {% else %}
+            <div class="card-meta" style="margin-top:12px;">
+              <a href="#" onclick="document.querySelector('.profile-btn').click(); return false;"
+                 style="color:#888;text-decoration:underline;">Sign in to add</a>
+            </div>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">
+      No cards found. The catalog may still be syncing.
+    </div>
+  {% endif %}
+{% endif %}
+
+{% endblock %}
