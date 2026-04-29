@@ -59,12 +59,18 @@ def extract_tcgplayer_price(card_data: dict) -> float | None:
     return None
 
 
+def _card_name(card: dict) -> str:
+    """Cards nest their fields under card_info. Pulls a usable name."""
+    info = card.get("card_info") or {}
+    return info.get("name") or info.get("clean_name") or card.get("name") or ""
+
+
 def search_cards(query: str, limit: int = 10) -> list[dict]:
-    """Search cards by name. Returns list of card objects with pricing."""
+    """Search cards by name. Returns list of card objects (each with nested card_info + pricing)."""
     data = _get("/search", params={"q": query, "limit": limit})
     if data is None:
         return []
-    return data.get("results") or data.get("cards") or []
+    return data.get("data") or []
 
 
 def get_card(card_id: str) -> dict | None:
@@ -79,30 +85,30 @@ def get_live_price(card_name: str) -> float | None:
     """
     results = search_cards(card_name, limit=5)
     for card in results:
-        if card.get("name", "").lower() == card_name.lower():
+        if _card_name(card).lower() == card_name.lower():
             price = extract_tcgplayer_price(card)
             if price is not None:
                 return price
-    # fall back to first result if exact match not found
     if results:
         return extract_tcgplayer_price(results[0])
     return None
 
 
 def get_all_sets() -> list[dict]:
-    """Fetch all Pokemon sets. Returns list with name, set_code, card_count, release_date."""
+    """Fetch all Pokemon sets. Returns list with name, set_code, set_id, card_count, language, release_date."""
     data = _get("/sets")
     if data is None:
         return []
-    return data.get("sets") or data.get("results") or []
+    return data.get("data") or []
 
 
-def get_set_cards(set_code: str, page: int = 1, limit: int = 200) -> dict:
+def get_set_cards(set_identifier: str, page: int = 1, limit: int = 200) -> dict:
     """
-    Fetch a page of cards for a given set code.
+    Fetch a page of cards for a given set. Pass set_id (numeric string) for unambiguous
+    lookups — set_code can match multiple sets across languages.
     Returns dict with 'cards' list and 'pagination' info.
     """
-    data = _get(f"/sets/{set_code}", params={"page": page, "limit": limit})
+    data = _get(f"/sets/{set_identifier}", params={"page": page, "limit": limit})
     return data or {}
 
 

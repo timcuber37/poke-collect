@@ -4,15 +4,18 @@ Run as a standalone process: python -m sync.api_sync
 
 Fetches live card + pricing data from the PokéWallet API and writes it
 directly to the Cassandra read model (cards_by_set) and Postgres vector
-store (card_embeddings). This is intentionally a read-side concern — it
-never touches MySQL or the Kafka event bus.
+store (catalog_embeddings). This is intentionally a read-side concern —
+it never touches MySQL or the Kafka event bus.
 
 Rate limit awareness (Free plan: 100 req/hour):
   - Sleeps SYNC_DELAY_SECONDS between set fetches to stay within limits.
   - Full catalog syncs run on SYNC_INTERVAL_SECONDS (default: 30 min).
 """
 import logging
+import re
 import time
+from datetime import date
+
 import psycopg2
 from cassandra.cluster import Cluster
 from cassandra.policies import DCAwareRoundRobinPolicy
@@ -24,14 +27,44 @@ from api.pokewallet import get_all_sets, get_set_cards, extract_tcgplayer_price
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Seconds between individual set API calls — keeps us well under 100 req/hour
 SYNC_DELAY_SECONDS    = 40
-# How long to wait between full catalog sync passes
 SYNC_INTERVAL_SECONDS = 1800  # 30 minutes
-# Scarlet & Violet era began with the SV base set on 2023-03-31
-SV_ERA_START_DATE     = "2023-03-31"
+SV_ERA_START          = date(2023, 3, 31)
+SV_LANGUAGE           = "eng"
 
 _embed_model = None
+
+MONTHS = {
+    "January": 1, "February": 2, "March": 3, "April": 4,
+    "May": 5, "June": 6, "July": 7, "August": 8,
+    "September": 9, "October": 10, "November": 11, "December": 12,
+}
+DATE_RE = re.compile(r"(\d{1,2})(?:st|nd|rd|th)?\s+(\w+),?\s+(\d{4})")
+
+
+def parse_release_date(raw: str | None) -> date | None:
+    """Parse 'Nth Month, YYYY' (e.g. '31st March, 2023') into a date."""
+    if not raw:
+        return None
+    m = DATE_RE.match(raw.strip())
+    if not m:
+        return None
+    day, month_name, year = int(m.group(1)), m.group(2), int(m.group(3))
+    month = MONTHS.get(month_name)
+    if not month:
+        return None
+    try:
+        return date(year, month, day)
+    except ValueError:
+        return None
+
+
+def is_sv_era_eng(set_info: dict) -> bool:
+    """English Scarlet & Violet era sets only."""
+    if (set_info.get("language") or "").lower() != SV_LANGUAGE:
+        return False
+    release = parse_release_date(set_info.get("release_date"))
+    return release is not None and release >= SV_ERA_START
 
 
 def get_embed_model() -> SentenceTransformer:
@@ -54,17 +87,7 @@ def get_pg_conn():
     return psycopg2.connect(config.POSTGRES_DSN)
 
 
-def is_sv_era(set_info: dict) -> bool:
-    """Return True if the set was released on or after the Scarlet & Violet era start."""
-    release_date = set_info.get("release_date") or set_info.get("releaseDate", "")
-    return bool(release_date) and release_date >= SV_ERA_START_DATE
-
-
 def clear_catalog_tables(cass_session, pg_conn):
-    """
-    Wipe catalog read models before each sync pass so stale (non-SV) cards don't linger.
-    Only touches tables populated by this sync — never the user-collection tables.
-    """
     cass_session.execute("TRUNCATE cards_by_set")
     with pg_conn.cursor() as cur:
         cur.execute("TRUNCATE catalog_embeddings RESTART IDENTITY")
@@ -73,37 +96,32 @@ def clear_catalog_tables(cass_session, pg_conn):
 
 
 def sync_set(cass_session, pg_conn, set_info: dict) -> int:
-    """
-    Fetch all cards in one set and write them to Cassandra + Postgres.
-    Returns the number of cards synced.
-    """
-    set_code = set_info.get("set_code") or set_info.get("code")
-    set_name = set_info.get("name", set_code)
-    if not set_code:
+    """Fetch all cards in one set and write them to Cassandra + Postgres."""
+    set_id   = set_info.get("set_id")  # use set_id (numeric) — set_code can be ambiguous
+    set_name = set_info.get("name") or str(set_id)
+    if not set_id:
         return 0
 
-    page        = 1
+    page         = 1
     total_synced = 0
 
     while True:
-        data  = get_set_cards(set_code, page=page, limit=200)
-        cards = data.get("cards") or data.get("results") or []
+        data  = get_set_cards(str(set_id), page=page, limit=200)
+        cards = data.get("cards") or []
         if not cards:
             break
 
         for card in cards:
+            info      = card.get("card_info") or {}
             card_id   = card.get("id", "")
-            card_name = card.get("name", "")
-            rarity    = card.get("rarity", "Unknown")
-            card_type = (
-                card.get("type")
-                or (card.get("types") or ["Unknown"])[0]
-                if isinstance(card.get("types"), list)
-                else card.get("types", "Unknown")
-            )
+            card_name = info.get("name") or info.get("clean_name", "")
+            rarity    = info.get("rarity", "Unknown")
+            card_type = info.get("card_type", "Unknown")
             price_usd = extract_tcgplayer_price(card)
 
-            # --- Write to Cassandra cards_by_set ---
+            if not card_id or not card_name:
+                continue
+
             cass_session.execute(
                 """
                 INSERT INTO cards_by_set
@@ -113,13 +131,16 @@ def sync_set(cass_session, pg_conn, set_info: dict) -> int:
                 (set_name, card_id, card_name, rarity, card_type, price_usd, card_id),
             )
 
-            # --- Write embedding to Postgres ---
-            content = (
-                f"Card: {card_name}. Set: {set_name}. "
-                f"Rarity: {rarity}. Type: {card_type}. "
-                f"TCGPlayer price: ${price_usd:.2f} USD." if price_usd
-                else f"Card: {card_name}. Set: {set_name}. Rarity: {rarity}. Type: {card_type}."
-            )
+            if price_usd is not None:
+                content = (
+                    f"Card: {card_name}. Set: {set_name}. Rarity: {rarity}. "
+                    f"Type: {card_type}. TCGPlayer price: ${price_usd:.2f} USD."
+                )
+            else:
+                content = (
+                    f"Card: {card_name}. Set: {set_name}. "
+                    f"Rarity: {rarity}. Type: {card_type}."
+                )
             embedding = get_embed_model().encode(content).tolist()
 
             with pg_conn.cursor() as cur:
@@ -158,10 +179,10 @@ def run_sync_pass():
     clear_catalog_tables(cass_session, pg_conn)
 
     all_sets = get_all_sets()
-    sv_sets  = [s for s in all_sets if is_sv_era(s)]
+    sv_sets  = [s for s in all_sets if is_sv_era_eng(s)]
     logger.info(
-        "Found %d total sets — filtering to %d Scarlet & Violet era sets (>= %s)",
-        len(all_sets), len(sv_sets), SV_ERA_START_DATE,
+        "Found %d total sets — filtering to %d English SV-era sets (>= %s)",
+        len(all_sets), len(sv_sets), SV_ERA_START.isoformat(),
     )
 
     total = 0
