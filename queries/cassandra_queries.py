@@ -19,19 +19,21 @@ def get_session():
 
 def get_collection_by_user(user_id: str) -> list[dict]:
     rows = get_session().execute(
-        "SELECT collection_id, card_id, card_name, set_name, rarity, condition, acquired_at "
+        "SELECT collection_id, card_id, card_name, set_name, rarity, condition, "
+        "market_price_usd, acquired_at "
         "FROM collection_by_user WHERE user_id = %s",
         (user_id,),
     )
     return [
         {
-            "collection_id": r.collection_id,
-            "card_id":       r.card_id,
-            "card_name":     r.card_name,
-            "set_name":      r.set_name,
-            "rarity":        r.rarity,
-            "condition":     r.condition,
-            "acquired_at":   r.acquired_at,
+            "collection_id":    r.collection_id,
+            "card_id":          r.card_id,
+            "card_name":        r.card_name,
+            "set_name":         r.set_name,
+            "rarity":           r.rarity,
+            "condition":        r.condition,
+            "market_price_usd": float(r.market_price_usd) if r.market_price_usd is not None else None,
+            "acquired_at":      r.acquired_at,
         }
         for r in rows
     ]

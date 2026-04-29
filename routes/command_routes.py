@@ -1,11 +1,50 @@
-from flask import Blueprint, request, redirect, url_for, flash
+from flask import Blueprint, request, redirect, url_for, render_template
 from commands.handlers import (
+    handle_add_card,
     handle_add_from_search,
     handle_remove_card,
+    handle_list_for_trade,
+    handle_complete_trade,
 )
+from commands.mysql_writer import get_users, get_all_cards, get_open_listings
 import auth
 
 command_bp = Blueprint("commands", __name__)
+
+
+@command_bp.route("/commands", methods=["GET"])
+def commands_page():
+    return render_template(
+        "commands.html",
+        users=get_users(),
+        cards=get_all_cards(),
+        listings=get_open_listings(),
+    )
+
+
+@command_bp.route("/commands/add-card", methods=["POST"])
+def add_card():
+    user_id = request.form["user_id"]
+    handle_add_card(user_id, request.form["card_id"], request.form.get("condition", "Near Mint"))
+    return redirect(url_for("commands.commands_page"))
+
+
+@command_bp.route("/commands/list-for-trade", methods=["POST"])
+def list_for_trade():
+    user_id = request.form["user_id"]
+    handle_list_for_trade(user_id, request.form["collection_id"])
+    return redirect(url_for("commands.commands_page"))
+
+
+@command_bp.route("/commands/complete-trade", methods=["POST"])
+def complete_trade():
+    handle_complete_trade(
+        initiator_id      = request.form["initiator_id"],
+        receiver_id       = request.form["receiver_id"],
+        initiator_listing = request.form["initiator_listing"],
+        receiver_listing  = request.form["receiver_listing"],
+    )
+    return redirect(url_for("queries.trades"))
 
 
 @command_bp.route("/commands/add-from-search", methods=["POST"])
