@@ -91,18 +91,6 @@
     .profile-menu a:hover { background: #1f1f1f; color: #fff; }
     .profile-menu .divider { height: 1px; background: #262626; margin: 6px 0; }
 
-    /* ---- Nav ---- */
-    .nav-links {
-      display: flex; gap: 4px; justify-content: center;
-    }
-    .nav-links a {
-      padding: 6px 14px; border-radius: 16px;
-      color: #aaa; text-decoration: none; font-size: 0.85rem;
-      transition: background 0.15s, color 0.15s;
-    }
-    .nav-links a:hover { background: #1f1f1f; color: #fff; }
-    .nav-links a.active { background: #1f1f1f; color: #fff; }
-
     /* ---- Layout ---- */
     .container { max-width: 1100px; margin: 0 auto; padding: 32px; }
 
@@ -251,16 +239,6 @@
       </div>
     </div>
   </header>
-
-  <nav style="border-bottom:1px solid #1f1f1f;padding:0 32px;">
-    <div class="nav-links" style="justify-content:flex-start;padding:8px 0;">
-      <a href="/"         {% if request.path == '/' %}class="active"{% endif %}>Search</a>
-      <a href="/market"   {% if request.path.startswith('/market') %}class="active"{% endif %}>Market</a>
-      <a href="/trades"   {% if request.path.startswith('/trades') %}class="active"{% endif %}>Trades</a>
-      <a href="/commands" {% if request.path.startswith('/commands') %}class="active"{% endif %}>Commands</a>
-      <a href="/chat"     {% if request.path.startswith('/chat') %}class="active"{% endif %}>AI Chat</a>
-    </div>
-  </nav>
 
   <main class="container">
     {% block content %}{% endblock %}

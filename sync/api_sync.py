@@ -9,12 +9,10 @@ it never touches MySQL or the Kafka event bus.
 
 Rate limit awareness (Free plan: 100 req/hour):
   - Sleeps SYNC_DELAY_SECONDS between set fetches to stay within limits.
-  - Full catalog syncs run on SYNC_INTERVAL_SECONDS (default: 30 min).
+  - Full catalog sync (~850 sets) takes ~10 hours; interval is set accordingly.
 """
 import logging
-import re
 import time
-from datetime import date
 
 import psycopg2
 from cassandra.cluster import Cluster
@@ -28,43 +26,9 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 SYNC_DELAY_SECONDS    = 40
-SYNC_INTERVAL_SECONDS = 1800  # 30 minutes
-SV_ERA_START          = date(2023, 3, 31)
-SV_LANGUAGE           = "eng"
+SYNC_INTERVAL_SECONDS = 43200  # 12 hours — full pass takes ~10 h on free plan
 
 _embed_model = None
-
-MONTHS = {
-    "January": 1, "February": 2, "March": 3, "April": 4,
-    "May": 5, "June": 6, "July": 7, "August": 8,
-    "September": 9, "October": 10, "November": 11, "December": 12,
-}
-DATE_RE = re.compile(r"(\d{1,2})(?:st|nd|rd|th)?\s+(\w+),?\s+(\d{4})")
-
-
-def parse_release_date(raw: str | None) -> date | None:
-    """Parse 'Nth Month, YYYY' (e.g. '31st March, 2023') into a date."""
-    if not raw:
-        return None
-    m = DATE_RE.match(raw.strip())
-    if not m:
-        return None
-    day, month_name, year = int(m.group(1)), m.group(2), int(m.group(3))
-    month = MONTHS.get(month_name)
-    if not month:
-        return None
-    try:
-        return date(year, month, day)
-    except ValueError:
-        return None
-
-
-def is_sv_era_eng(set_info: dict) -> bool:
-    """English Scarlet & Violet era sets only."""
-    if (set_info.get("language") or "").lower() != SV_LANGUAGE:
-        return False
-    release = parse_release_date(set_info.get("release_date"))
-    return release is not None and release >= SV_ERA_START
 
 
 def get_embed_model() -> SentenceTransformer:
@@ -115,8 +79,8 @@ def sync_set(cass_session, pg_conn, set_info: dict) -> int:
             info      = card.get("card_info") or {}
             card_id   = card.get("id", "")
             card_name = info.get("name") or info.get("clean_name", "")
-            rarity    = info.get("rarity", "Unknown")
-            card_type = info.get("card_type", "Unknown")
+            rarity    = info.get("rarity") or "Unknown"
+            card_type = info.get("card_type") or "Unknown"
             price_usd = extract_tcgplayer_price(card)
 
             if not card_id or not card_name:
@@ -179,21 +143,17 @@ def run_sync_pass():
     clear_catalog_tables(cass_session, pg_conn)
 
     all_sets = get_all_sets()
-    sv_sets  = [s for s in all_sets if is_sv_era_eng(s)]
-    logger.info(
-        "Found %d total sets — filtering to %d English SV-era sets (>= %s)",
-        len(all_sets), len(sv_sets), SV_ERA_START.isoformat(),
-    )
+    logger.info("Found %d sets — syncing all", len(all_sets))
 
     total = 0
-    for i, set_info in enumerate(sv_sets):
+    for i, set_info in enumerate(all_sets):
         synced = sync_set(cass_session, pg_conn, set_info)
         total += synced
-        if i < len(sv_sets) - 1:
+        if i < len(all_sets) - 1:
             logger.info("Waiting %ds before next set request...", SYNC_DELAY_SECONDS)
             time.sleep(SYNC_DELAY_SECONDS)
 
-    logger.info("Sync pass complete. Total SV-era cards synced: %d", total)
+    logger.info("Sync pass complete. Total cards synced: %d", total)
 
 
 def run():
