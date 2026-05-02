@@ -1,16 +1,33 @@
 {% extends "base.html" %}
 {% block content %}
 
-{% if not query %}
-  <div style="text-align:center;padding:80px 20px;">
-    <h1 style="font-size:2.4rem;font-weight:700;letter-spacing:-0.02em;">Find any card.</h1>
+<!-- Set filter bar — always visible -->
+<form method="get" action="/" style="margin-bottom:28px;display:flex;gap:12px;align-items:center;">
+  {% if query %}<input type="hidden" name="q" value="{{ query }}" />{% endif %}
+  <select name="set" onchange="this.form.submit()"
+          style="flex:1;max-width:360px;padding:9px 12px;background:#141414;border:1px solid #262626;color:#fff;border-radius:8px;font-size:0.9rem;">
+    <option value="">— Browse by set —</option>
+    {% for s in set_names %}
+      <option value="{{ s }}" {% if s == set_name %}selected{% endif %}>{{ s }}</option>
+    {% endfor %}
+  </select>
+  {% if set_name %}
+    <a href="/?{% if query %}q={{ query }}{% endif %}" style="color:#888;font-size:0.85rem;text-decoration:none;">✕ Clear set</a>
+  {% endif %}
+</form>
+
+{% if not query and not set_name %}
+  <div style="text-align:center;padding:60px 20px;">
+    <h1 style="font-size:2.4rem;font-weight:700;letter-spacing:-0.02em;">Find any Pokémon card.</h1>
     <p style="color:#888;margin-top:12px;font-size:1rem;">
-      Search the Scarlet &amp; Violet catalog and add cards to your collection.
+      Search for cards from the Modern Era and add cards to your collection.
     </p>
   </div>
 {% else %}
   <h1 style="font-size:1.2rem;font-weight:500;color:#aaa;margin-bottom:24px;">
-    {{ results|length }} result{{ '' if results|length == 1 else 's' }} for "{{ query }}"
+    {{ results|length }} result{{ '' if results|length == 1 else 's' }}
+    {% if query %}for "{{ query }}"{% endif %}
+    {% if set_name %}in {{ set_name }}{% endif %}
   </h1>
 
   {% if results %}

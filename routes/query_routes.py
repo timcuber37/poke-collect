@@ -5,7 +5,7 @@ from queries.cassandra_queries import (
     get_cards_by_set,
     get_all_set_names,
 )
-from queries.postgres_search import search_catalog
+from queries.postgres_search import search_catalog, get_catalog_set_names
 from commands.mysql_writer   import get_users
 import auth
 
@@ -14,9 +14,12 @@ query_bp = Blueprint("queries", __name__)
 
 @query_bp.route("/")
 def home():
-    query   = request.args.get("q", "").strip()
-    results = search_catalog(query) if query else []
-    return render_template("home.html", query=query, results=results)
+    query    = request.args.get("q", "").strip()
+    set_name = request.args.get("set", "").strip()
+    results  = search_catalog(query=query, set_name=set_name) if (query or set_name) else []
+    set_names = get_catalog_set_names()
+    return render_template("home.html", query=query, set_name=set_name,
+                           results=results, set_names=set_names)
 
 
 @query_bp.route("/collection")

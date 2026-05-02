@@ -9,10 +9,13 @@ it never touches MySQL or the Kafka event bus.
 
 Rate limit awareness (Free plan: 100 req/hour):
   - Sleeps SYNC_DELAY_SECONDS between set fetches to stay within limits.
-  - Full catalog sync (~850 sets) takes ~10 hours; interval is set accordingly.
+  - Filters to English sets from the XY era onward (November 2013+), covering
+    XY, Mega Evolution, Sun & Moon, Sword & Shield, and Scarlet & Violet.
 """
 import logging
+import re
 import time
+from datetime import date
 
 import psycopg2
 from cassandra.cluster import Cluster
@@ -26,9 +29,42 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 SYNC_DELAY_SECONDS    = 40
-SYNC_INTERVAL_SECONDS = 43200  # 12 hours — full pass takes ~10 h on free plan
+SYNC_INTERVAL_SECONDS = 7200   # 2 hours — filtered pass (~110 sets) takes ~75 min
+XY_ERA_START          = date(2013, 11, 1)   # XY Base Set released November 2013
+ENG                   = "eng"
+
+MONTHS = {
+    "January": 1, "February": 2, "March": 3,  "April": 4,
+    "May": 5,     "June": 6,     "July": 7,    "August": 8,
+    "September": 9, "October": 10, "November": 11, "December": 12,
+}
+DATE_RE = re.compile(r"(\d{1,2})(?:st|nd|rd|th)?\s+(\w+),?\s+(\d{4})")
 
 _embed_model = None
+
+
+def parse_release_date(raw: str | None) -> date | None:
+    if not raw:
+        return None
+    m = DATE_RE.match(raw.strip())
+    if not m:
+        return None
+    day, month_name, year = int(m.group(1)), m.group(2), int(m.group(3))
+    month = MONTHS.get(month_name)
+    if not month:
+        return None
+    try:
+        return date(year, month, day)
+    except ValueError:
+        return None
+
+
+def is_xy_era_or_newer(set_info: dict) -> bool:
+    """English sets from XY era (Nov 2013) onward: XY, Mega Evolution, SM, SwSh, SV."""
+    if (set_info.get("language") or "").lower() != ENG:
+        return False
+    release = parse_release_date(set_info.get("release_date"))
+    return release is not None and release >= XY_ERA_START
 
 
 def get_embed_model() -> SentenceTransformer:
@@ -140,20 +176,22 @@ def run_sync_pass():
     cass_session = get_cassandra_session()
     pg_conn      = get_pg_conn()
 
-    clear_catalog_tables(cass_session, pg_conn)
-
-    all_sets = get_all_sets()
-    logger.info("Found %d sets — syncing all", len(all_sets))
+    all_sets     = get_all_sets()
+    target_sets  = [s for s in all_sets if is_xy_era_or_newer(s)]
+    logger.info(
+        "Found %d total sets — syncing %d English XY-era+ sets (>= %s)",
+        len(all_sets), len(target_sets), XY_ERA_START.isoformat(),
+    )
 
     total = 0
-    for i, set_info in enumerate(all_sets):
+    for i, set_info in enumerate(target_sets):
         synced = sync_set(cass_session, pg_conn, set_info)
         total += synced
-        if i < len(all_sets) - 1:
+        if i < len(target_sets) - 1:
             logger.info("Waiting %ds before next set request...", SYNC_DELAY_SECONDS)
             time.sleep(SYNC_DELAY_SECONDS)
 
-    logger.info("Sync pass complete. Total cards synced: %d", total)
+    logger.info("Sync pass complete. Total XY-era+ cards synced: %d", total)
 
 
 def run():
