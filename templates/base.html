@@ -205,6 +205,9 @@
     <a class="brand" href="/">Poké<span class="brand-dot">·</span>Collect</a>
 
     <form class="search-form" action="/" method="get" role="search">
+      {% if request.args.get('set') %}
+        <input type="hidden" name="set" value="{{ request.args.get('set') }}" />
+      {% endif %}
       <input type="text" name="q" placeholder="Search Pokémon cards..."
              value="{{ request.args.get('q', '') }}" autocomplete="off" />
       <button type="submit">↵</button>

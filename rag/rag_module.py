@@ -24,7 +24,7 @@ def retrieve_context(question: str, top_k: int = 5) -> list[str]:
         cur.execute(
             """
             SELECT content
-            FROM   card_embeddings
+            FROM   catalog_embeddings
             ORDER  BY embedding <-> %s::vector
             LIMIT  %s
             """,

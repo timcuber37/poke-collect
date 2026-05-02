@@ -6,7 +6,8 @@ rag_bp = Blueprint("rag", __name__)
 
 @rag_bp.route("/chat")
 def chat_page():
-    return render_template("chat.html")
+    import config as cfg
+    return render_template("chat.html", config=cfg)
 
 
 @rag_bp.route("/chat/ask", methods=["POST"])

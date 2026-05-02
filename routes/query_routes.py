@@ -5,7 +5,7 @@ from queries.cassandra_queries import (
     get_cards_by_set,
     get_all_set_names,
 )
-from queries.postgres_search import search_catalog, get_catalog_set_names
+from queries.postgres_search import search_catalog, get_catalog_set_names, get_current_prices
 from commands.mysql_writer   import get_users
 import auth
 
@@ -28,6 +28,9 @@ def collection_view():
     if not user_id:
         return redirect(url_for("queries.home"))
     cards = get_collection_by_user(user_id)
+    current_prices = get_current_prices([c["card_id"] for c in cards])
+    for card in cards:
+        card["market_price_usd"] = current_prices.get(card["card_id"], card["market_price_usd"])
     return render_template("collection.html", cards=cards)
 
 

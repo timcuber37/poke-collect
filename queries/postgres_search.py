@@ -54,6 +54,23 @@ def search_catalog(query: str = "", set_name: str = "", limit: int = 30) -> list
     ]
 
 
+def get_current_prices(card_ids: list[str]) -> dict[str, float | None]:
+    """Return a {pokewallet_id: market_price_usd} map for the given card IDs."""
+    if not card_ids:
+        return {}
+    conn = psycopg2.connect(config.POSTGRES_DSN)
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT pokewallet_id, market_price_usd FROM catalog_embeddings "
+                "WHERE pokewallet_id = ANY(%s)",
+                (card_ids,),
+            )
+            return {r[0]: float(r[1]) if r[1] is not None else None for r in cur.fetchall()}
+    finally:
+        conn.close()
+
+
 def get_catalog_set_names() -> list[str]:
     """Return distinct set names from the synced catalog, alphabetically sorted."""
     conn = psycopg2.connect(config.POSTGRES_DSN)
