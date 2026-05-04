@@ -29,7 +29,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 SYNC_DELAY_SECONDS    = 40
-SYNC_INTERVAL_SECONDS = 7200   # 2 hours — filtered pass (~110 sets) takes ~75 min
+SYNC_INTERVAL_SECONDS = 86400  # 24 hours — one pass per day to stay within daily API quota
 XY_ERA_START          = date(2013, 11, 1)   # XY Base Set released November 2013
 ENG                   = "eng"
 

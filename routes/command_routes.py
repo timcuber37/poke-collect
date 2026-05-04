@@ -1,3 +1,5 @@
+import logging
+import psycopg2
 from flask import Blueprint, request, redirect, url_for, render_template
 from commands.handlers import (
     handle_add_card,
@@ -7,7 +9,37 @@ from commands.handlers import (
     handle_complete_trade,
 )
 from commands.mysql_writer import get_users, get_all_cards, get_open_listings
+from api.pokewallet import get_card, extract_tcgplayer_price
 import auth
+import config
+
+logger = logging.getLogger(__name__)
+
+
+def _fetch_and_cache_live_price(pokewallet_id: str) -> float | None:
+    """Call /cards/{id} for live price and upsert into catalog_embeddings."""
+    try:
+        card = get_card(pokewallet_id)
+        if not card:
+            return None
+        price = extract_tcgplayer_price(card)
+        if price is None:
+            return None
+        conn = psycopg2.connect(config.POSTGRES_DSN)
+        try:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "UPDATE catalog_embeddings SET market_price_usd = %s, updated_at = NOW() "
+                    "WHERE pokewallet_id = %s",
+                    (price, pokewallet_id),
+                )
+            conn.commit()
+        finally:
+            conn.close()
+        return price
+    except Exception as exc:
+        logger.warning("Live price fetch failed for %s: %s", pokewallet_id, exc)
+        return None
 
 command_bp = Blueprint("commands", __name__)
 
@@ -53,18 +85,21 @@ def add_from_search():
     if not user_id:
         return redirect(url_for("queries.home"))
 
-    price_raw = request.form.get("market_price_usd", "").strip()
-    market_price = float(price_raw) if price_raw else None
+    pokewallet_id = request.form["pokewallet_id"]
+    live_price = _fetch_and_cache_live_price(pokewallet_id)
+    if live_price is None:
+        price_raw = request.form.get("market_price_usd", "").strip()
+        live_price = float(price_raw) if price_raw else None
 
     handle_add_from_search(
         user_id          = user_id,
-        pokewallet_id    = request.form["pokewallet_id"],
+        pokewallet_id    = pokewallet_id,
         card_name        = request.form["card_name"],
         set_name         = request.form["set_name"],
         rarity           = request.form["rarity"],
         card_type        = request.form["card_type"],
         condition        = request.form.get("condition", "Near Mint"),
-        market_price_usd = market_price,
+        market_price_usd = live_price,
     )
     return redirect(request.referrer or url_for("queries.collection_view"))
 

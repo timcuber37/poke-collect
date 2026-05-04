@@ -52,7 +52,7 @@ def extract_tcgplayer_price(card_data: dict) -> float | None:
     if not chosen:
         return None
 
-    for key in ("market", "mid", "low"):
+    for key in ("market_price", "mid_price", "low_price"):
         val = chosen.get(key)
         if val is not None:
             return float(val)
