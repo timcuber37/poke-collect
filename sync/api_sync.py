@@ -122,14 +122,26 @@ def sync_set(cass_session, pg_conn, set_info: dict) -> int:
             if not card_id or not card_name:
                 continue
 
-            cass_session.execute(
-                """
-                INSERT INTO cards_by_set
-                  (set_name, card_id, card_name, rarity, card_type, market_price_usd, pokewallet_id)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
-                """,
-                (set_name, card_id, card_name, rarity, card_type, price_usd, card_id),
-            )
+            # Skip market_price_usd unless we got a fresh value — Cassandra INSERT
+            # only writes the columns provided, so existing prices are preserved.
+            if price_usd is not None:
+                cass_session.execute(
+                    """
+                    INSERT INTO cards_by_set
+                      (set_name, card_id, card_name, rarity, card_type, market_price_usd, pokewallet_id)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    """,
+                    (set_name, card_id, card_name, rarity, card_type, price_usd, card_id),
+                )
+            else:
+                cass_session.execute(
+                    """
+                    INSERT INTO cards_by_set
+                      (set_name, card_id, card_name, rarity, card_type, pokewallet_id)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                    """,
+                    (set_name, card_id, card_name, rarity, card_type, card_id),
+                )
 
             if price_usd is not None:
                 content = (
@@ -151,7 +163,7 @@ def sync_set(cass_session, pg_conn, set_info: dict) -> int:
                        market_price_usd, content, embedding)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                     ON CONFLICT (pokewallet_id) DO UPDATE
-                      SET market_price_usd = EXCLUDED.market_price_usd,
+                      SET market_price_usd = COALESCE(EXCLUDED.market_price_usd, catalog_embeddings.market_price_usd),
                           content          = EXCLUDED.content,
                           embedding        = EXCLUDED.embedding,
                           updated_at       = NOW()

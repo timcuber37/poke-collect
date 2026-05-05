@@ -1,6 +1,18 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>{{ current_user.username }}'s Collection</h1>
+<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:24px;">
+  <h1 style="margin:0;">{{ current_user.username }}'s Collection</h1>
+  {% if cards %}
+    <div style="text-align:right;">
+      <div style="color:#888;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.05em;">Total value</div>
+      <div style="font-size:1.6rem;font-weight:700;color:#fff;">${{ "%.2f"|format(total_value) }}</div>
+      <div style="color:#666;font-size:0.75rem;margin-top:2px;">
+        {{ priced_copies }} of {{ total_copies }} cop{{ 'y' if total_copies == 1 else 'ies' }} priced
+        · {{ cards|length }} unique
+      </div>
+    </div>
+  {% endif %}
+</div>
 
 {% if cards %}
   <div class="card-grid">
@@ -12,15 +24,35 @@
         <div class="card-meta">{{ card.set_name }}</div>
         <span class="badge">{{ card.rarity }}</span>
         {% if card.market_price_usd is not none %}
-          <div class="price">${{ "%.2f"|format(card.market_price_usd) }}</div>
+          <div class="price">
+            ${{ "%.2f"|format(card.market_price_usd) }}
+            {% if card.count > 1 %}
+              <span style="color:#888;font-weight:400;font-size:0.85rem;">
+                × {{ card.count }} = ${{ "%.2f"|format(card.market_price_usd * card.count) }}
+              </span>
+            {% endif %}
+          </div>
         {% endif %}
         <div class="card-meta" style="margin-top:6px;">{{ card.condition }}</div>
-        <form method="post" action="/commands/remove-card" style="margin-top:10px;">
-          <input type="hidden" name="collection_id" value="{{ card.collection_id }}" />
-          <button class="btn-danger btn" type="submit" style="width:100%;font-size:0.8rem;padding:6px;">
-            Remove
-          </button>
-        </form>
+
+        <div style="display:flex;align-items:stretch;gap:6px;margin-top:10px;">
+          <form method="post" action="/commands/remove-card" style="flex:1;display:flex;">
+            <input type="hidden" name="collection_id" value="{{ card.collection_ids[0] }}" />
+            <button class="btn btn-secondary" type="submit"
+                    style="flex:1;font-size:1.1rem;line-height:1;padding:6px 0;font-weight:600;"
+                    title="Remove one copy">−</button>
+          </form>
+          <div style="flex:1;display:flex;align-items:center;justify-content:center;
+                      background:#0a0a0a;border:1px solid #262626;border-radius:6px;
+                      font-weight:700;font-size:0.95rem;">{{ card.count }}</div>
+          <form method="post" action="/commands/add-copy" style="flex:1;display:flex;">
+            <input type="hidden" name="pokewallet_id" value="{{ card.card_id }}" />
+            <input type="hidden" name="condition"     value="{{ card.condition }}" />
+            <button class="btn" type="submit"
+                    style="flex:1;font-size:1.1rem;line-height:1;padding:6px 0;font-weight:600;"
+                    title="Add another copy">+</button>
+          </form>
+        </div>
       </div>
     {% endfor %}
   </div>

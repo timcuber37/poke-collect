@@ -20,6 +20,6 @@ INFO:kafka.coordinator:(Re-)joining group cassandra-consumer
 INFO:kafka.coordinator:Elected group leader -- performing partition assignments using range
 INFO:kafka.conn:<BrokerConnection node_id=1 host=localhost:9092 <connecting> [IPv6 ('::1', 9092, 0, 0)]>: connecting to localhost:9092 [('::1', 9092, 0, 0) IPv6]
 INFO:kafka.conn:<BrokerConnection node_id=1 host=localhost:9092 <connecting> [IPv6 ('::1', 9092, 0, 0)]>: Connection complete.
-INFO:kafka.coordinator:Successfully joined group cassandra-consumer with generation 7
+INFO:kafka.coordinator:Successfully joined group cassandra-consumer with generation 12
 INFO:kafka.consumer.subscription_state:Updated partition assignment: [TopicPartition(topic='pokemon-tcg-events', partition=0)]
 INFO:kafka.coordinator.consumer:Setting newly assigned partitions {TopicPartition(topic='pokemon-tcg-events', partition=0)} for group cassandra-consumer

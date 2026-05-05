@@ -3,8 +3,6 @@ import logging
 from commands.mysql_writer import (
     insert_collection,
     delete_collection,
-    insert_trade_listing,
-    insert_trade,
     get_card_by_id,
     get_collection_entry,
     find_or_create_card_by_pokewallet_id,
@@ -12,8 +10,6 @@ from commands.mysql_writer import (
 from events.definitions import (
     CardAddedToCollection,
     CardRemovedFromCollection,
-    CardListedForTrade,
-    TradeCompleted,
 )
 from event_bus.bus import publish
 from api.pokewallet import get_live_price
@@ -95,35 +91,3 @@ def handle_remove_card(user_id: str, collection_id: str) -> None:
     publish(event.to_json())
 
 
-def handle_list_for_trade(user_id: str, collection_id: str) -> dict:
-    listing_id = str(uuid.uuid4())
-    entry = get_collection_entry(collection_id)
-
-    insert_trade_listing(listing_id, user_id, collection_id)
-
-    event = CardListedForTrade(
-        user_id=user_id,
-        card_id=entry["card_id"],
-        card_name=entry["name"],
-        collection_id=collection_id,
-        listing_id=listing_id,
-    )
-    publish(event.to_json())
-    return {"listing_id": listing_id}
-
-
-def handle_complete_trade(initiator_id: str, receiver_id: str,
-                          initiator_listing: str, receiver_listing: str) -> dict:
-    trade_id = str(uuid.uuid4())
-
-    insert_trade(trade_id, initiator_id, receiver_id, initiator_listing, receiver_listing)
-
-    event = TradeCompleted(
-        trade_id=trade_id,
-        initiator_id=initiator_id,
-        receiver_id=receiver_id,
-        initiator_card=initiator_listing,
-        receiver_card=receiver_listing,
-    )
-    publish(event.to_json())
-    return {"trade_id": trade_id}

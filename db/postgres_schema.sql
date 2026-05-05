@@ -1,4 +1,4 @@
--- Pokemon TCG CQRS - Postgres + pgvector RAG Schema
+-- Poke-Collect - Postgres + pgvector RAG Schema
 
 CREATE EXTENSION IF NOT EXISTS vector;
 

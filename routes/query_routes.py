@@ -1,12 +1,11 @@
 from flask import Blueprint, request, render_template, redirect, url_for
 from queries.cassandra_queries import (
     get_collection_by_user,
-    get_trade_history_by_user,
     get_cards_by_set,
     get_all_set_names,
 )
 from queries.postgres_search import search_catalog, get_catalog_set_names, get_current_prices
-from commands.mysql_writer   import get_users
+from routes.command_routes   import _fetch_and_cache_live_price
 import auth
 
 query_bp = Blueprint("queries", __name__)
@@ -30,8 +29,40 @@ def collection_view():
     cards = get_collection_by_user(user_id)
     current_prices = get_current_prices([c["card_id"] for c in cards])
     for card in cards:
-        card["market_price_usd"] = current_prices.get(card["card_id"], card["market_price_usd"])
-    return render_template("collection.html", cards=cards)
+        cid = card["card_id"]
+        price = current_prices.get(cid, card["market_price_usd"])
+        if price is None:
+            price = _fetch_and_cache_live_price(cid)
+        card["market_price_usd"] = price
+
+    groups: dict[str, dict] = {}
+    for card in cards:
+        cid = card["card_id"]
+        g = groups.setdefault(cid, {
+            "card_id":          cid,
+            "card_name":        card["card_name"],
+            "set_name":         card["set_name"],
+            "rarity":           card["rarity"],
+            "condition":        card["condition"],
+            "market_price_usd": card["market_price_usd"],
+            "count":            0,
+            "collection_ids":   [],
+        })
+        g["count"] += 1
+        g["collection_ids"].append(card["collection_id"])
+
+    grouped = sorted(groups.values(), key=lambda g: (g["set_name"] or "", g["card_name"] or ""))
+    total_copies   = sum(g["count"] for g in grouped)
+    priced_copies  = sum(g["count"] for g in grouped if g["market_price_usd"] is not None)
+    total_value    = sum(g["count"] * g["market_price_usd"] for g in grouped if g["market_price_usd"] is not None)
+
+    return render_template(
+        "collection.html",
+        cards=grouped,
+        total_copies=total_copies,
+        priced_copies=priced_copies,
+        total_value=total_value,
+    )
 
 
 @query_bp.route("/market")
@@ -40,11 +71,3 @@ def market():
     selected_set = request.args.get("set_name", sets[0] if sets else "")
     cards        = get_cards_by_set(selected_set) if selected_set else []
     return render_template("market.html", sets=sets, selected_set=selected_set, cards=cards)
-
-
-@query_bp.route("/trades")
-def trades():
-    users        = get_users()
-    selected_uid = request.args.get("user_id", users[0]["user_id"] if users else "")
-    trades_list  = get_trade_history_by_user(selected_uid) if selected_uid else []
-    return render_template("trades.html", trades=trades_list, users=users, selected_user=selected_uid)

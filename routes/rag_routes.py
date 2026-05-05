@@ -12,8 +12,8 @@ def chat_page():
 
 @rag_bp.route("/chat/ask", methods=["POST"])
 def chat_ask():
-    data     = request.get_json()
-    question = data.get("question", "").strip()
+    data     = request.get_json(silent=True) or {}
+    question = (data.get("question") or "")[:1000].strip()
     if not question:
         return jsonify({"error": "No question provided"}), 400
     answer = answer_question(question)

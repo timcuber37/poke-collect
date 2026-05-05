@@ -5,10 +5,8 @@ from commands.handlers import (
     handle_add_card,
     handle_add_from_search,
     handle_remove_card,
-    handle_list_for_trade,
-    handle_complete_trade,
 )
-from commands.mysql_writer import get_users, get_all_cards, get_open_listings
+from commands.mysql_writer import get_users, get_all_cards
 from api.pokewallet import get_card, extract_tcgplayer_price
 import auth
 import config
@@ -50,7 +48,6 @@ def commands_page():
         "commands.html",
         users=get_users(),
         cards=get_all_cards(),
-        listings=get_open_listings(),
     )
 
 
@@ -59,24 +56,6 @@ def add_card():
     user_id = request.form["user_id"]
     handle_add_card(user_id, request.form["card_id"], request.form.get("condition", "Near Mint"))
     return redirect(url_for("commands.commands_page"))
-
-
-@command_bp.route("/commands/list-for-trade", methods=["POST"])
-def list_for_trade():
-    user_id = request.form["user_id"]
-    handle_list_for_trade(user_id, request.form["collection_id"])
-    return redirect(url_for("commands.commands_page"))
-
-
-@command_bp.route("/commands/complete-trade", methods=["POST"])
-def complete_trade():
-    handle_complete_trade(
-        initiator_id      = request.form["initiator_id"],
-        receiver_id       = request.form["receiver_id"],
-        initiator_listing = request.form["initiator_listing"],
-        receiver_listing  = request.form["receiver_listing"],
-    )
-    return redirect(url_for("queries.trades"))
 
 
 @command_bp.route("/commands/add-from-search", methods=["POST"])
@@ -110,4 +89,45 @@ def remove_card():
     if not user_id:
         return redirect(url_for("queries.home"))
     handle_remove_card(user_id, request.form["collection_id"])
+    return redirect(url_for("queries.collection_view"))
+
+
+@command_bp.route("/commands/add-copy", methods=["POST"])
+def add_copy():
+    user_id = auth.current_user_id()
+    if not user_id:
+        return redirect(url_for("queries.home"))
+
+    pokewallet_id = request.form["pokewallet_id"]
+    condition     = request.form.get("condition", "Near Mint")
+
+    conn = psycopg2.connect(config.POSTGRES_DSN)
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT card_name, set_name, rarity, card_type, market_price_usd "
+                "FROM catalog_embeddings WHERE pokewallet_id = %s",
+                (pokewallet_id,),
+            )
+            row = cur.fetchone()
+    finally:
+        conn.close()
+
+    if not row:
+        return redirect(url_for("queries.collection_view"))
+
+    card_name, set_name, rarity, card_type, market_price = row
+    if market_price is None:
+        market_price = _fetch_and_cache_live_price(pokewallet_id)
+
+    handle_add_from_search(
+        user_id          = user_id,
+        pokewallet_id    = pokewallet_id,
+        card_name        = card_name,
+        set_name         = set_name,
+        rarity           = rarity or "Unknown",
+        card_type        = card_type or "Unknown",
+        condition        = condition,
+        market_price_usd = float(market_price) if market_price is not None else None,
+    )
     return redirect(url_for("queries.collection_view"))

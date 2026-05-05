@@ -39,23 +39,6 @@ def get_collection_by_user(user_id: str) -> list[dict]:
     ]
 
 
-def get_trade_history_by_user(user_id: str) -> list[dict]:
-    rows = get_session().execute(
-        "SELECT trade_id, initiator_id, receiver_id, completed_at "
-        "FROM trade_history_by_user WHERE user_id = %s",
-        (user_id,),
-    )
-    return [
-        {
-            "trade_id":     r.trade_id,
-            "initiator_id": r.initiator_id,
-            "receiver_id":  r.receiver_id,
-            "completed_at": r.completed_at,
-        }
-        for r in rows
-    ]
-
-
 def get_cards_by_set(set_name: str) -> list[dict]:
     rows = get_session().execute(
         "SELECT card_id, card_name, rarity, card_type, market_price_usd "

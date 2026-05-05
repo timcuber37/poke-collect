@@ -1,4 +1,4 @@
--- Pokemon TCG CQRS - MySQL Write Side Schema
+-- Poke-Collect - MySQL Write Side Schema
 
 CREATE DATABASE IF NOT EXISTS pokemon_tcg;
 USE pokemon_tcg;
@@ -39,36 +39,6 @@ CREATE TABLE collections (
     FOREIGN KEY (user_id) REFERENCES users(user_id),
     FOREIGN KEY (card_id) REFERENCES cards(card_id),
     INDEX idx_user_collection (user_id)
-);
-
--- Trade listings (a card offered for trade)
-CREATE TABLE trade_listings (
-    listing_id    CHAR(36)    NOT NULL DEFAULT (UUID()),
-    user_id       CHAR(36)    NOT NULL,
-    collection_id CHAR(36)    NOT NULL,
-    status        ENUM('open', 'pending', 'completed', 'cancelled') NOT NULL DEFAULT 'open',
-    created_at    DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (listing_id),
-    FOREIGN KEY (user_id) REFERENCES users(user_id),
-    FOREIGN KEY (collection_id) REFERENCES collections(collection_id),
-    INDEX idx_open_listings (status)
-);
-
--- Completed trades between two users
-CREATE TABLE trades (
-    trade_id          CHAR(36) NOT NULL DEFAULT (UUID()),
-    initiator_id      CHAR(36) NOT NULL,
-    receiver_id       CHAR(36) NOT NULL,
-    initiator_listing CHAR(36) NOT NULL,
-    receiver_listing  CHAR(36) NOT NULL,
-    completed_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (trade_id),
-    FOREIGN KEY (initiator_id)      REFERENCES users(user_id),
-    FOREIGN KEY (receiver_id)       REFERENCES users(user_id),
-    FOREIGN KEY (initiator_listing) REFERENCES trade_listings(listing_id),
-    FOREIGN KEY (receiver_listing)  REFERENCES trade_listings(listing_id),
-    INDEX idx_initiator (initiator_id),
-    INDEX idx_receiver  (receiver_id)
 );
 
 -- Seed: sample users

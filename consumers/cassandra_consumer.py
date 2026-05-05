@@ -47,39 +47,9 @@ def handle_card_removed(session, event: dict):
     logger.info("Cassandra: removed card %s for user %s", event["card_name"], event["user_id"])
 
 
-def handle_card_listed(session, event: dict):
-    session.execute(
-        """
-        INSERT INTO trade_listings_by_user
-          (user_id, listing_id, card_id, card_name, collection_id, status, created_at)
-        VALUES (%s, %s, %s, %s, %s, 'open', toTimestamp(now()))
-        """,
-        (
-            event["user_id"], event["listing_id"], event["card_id"],
-            event["card_name"], event["collection_id"],
-        ),
-    )
-    logger.info("Cassandra: listed card %s for trade", event["card_name"])
-
-
-def handle_trade_completed(session, event: dict):
-    for user_id in (event["initiator_id"], event["receiver_id"]):
-        session.execute(
-            """
-            INSERT INTO trade_history_by_user
-              (user_id, trade_id, initiator_id, receiver_id, completed_at)
-            VALUES (%s, %s, %s, %s, toTimestamp(now()))
-            """,
-            (user_id, event["trade_id"], event["initiator_id"], event["receiver_id"]),
-        )
-    logger.info("Cassandra: recorded trade %s", event["trade_id"])
-
-
 HANDLERS = {
-    "card_added_to_collection":    handle_card_added,
+    "card_added_to_collection":     handle_card_added,
     "card_removed_from_collection": handle_card_removed,
-    "card_listed_for_trade":       handle_card_listed,
-    "trade_completed":             handle_trade_completed,
 }
 
 

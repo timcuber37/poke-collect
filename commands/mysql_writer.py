@@ -33,59 +33,12 @@ def delete_collection(collection_id: str):
         session.commit()
 
 
-def insert_trade_listing(listing_id: str, user_id: str, collection_id: str):
-    with _session() as session:
-        session.execute(
-            text(
-                "INSERT INTO trade_listings (listing_id, user_id, collection_id) "
-                "VALUES (:lid, :uid, :cid)"
-            ),
-            {"lid": listing_id, "uid": user_id, "cid": collection_id},
-        )
-        session.commit()
-
-
-def insert_trade(trade_id: str, initiator_id: str, receiver_id: str,
-                 initiator_listing: str, receiver_listing: str):
-    with _session() as session:
-        session.execute(
-            text(
-                "INSERT INTO trades (trade_id, initiator_id, receiver_id, "
-                "initiator_listing, receiver_listing) "
-                "VALUES (:tid, :iid, :rid, :il, :rl)"
-            ),
-            {
-                "tid": trade_id, "iid": initiator_id, "rid": receiver_id,
-                "il": initiator_listing, "rl": receiver_listing,
-            },
-        )
-        session.execute(
-            text("UPDATE trade_listings SET status='completed' WHERE listing_id IN (:il, :rl)"),
-            {"il": initiator_listing, "rl": receiver_listing},
-        )
-        session.commit()
-
-
 # --- Read helpers (only used to populate command-side UI dropdowns) ---
 
 def get_all_cards() -> list[dict]:
     with _session() as session:
         rows = session.execute(
             text("SELECT card_id, name, set_name, rarity FROM cards ORDER BY set_name, name")
-        ).mappings().all()
-        return [dict(r) for r in rows]
-
-
-def get_open_listings() -> list[dict]:
-    with _session() as session:
-        rows = session.execute(
-            text(
-                "SELECT tl.listing_id, tl.user_id, c.name AS card_name, c.set_name "
-                "FROM trade_listings tl "
-                "JOIN collections col ON tl.collection_id = col.collection_id "
-                "JOIN cards c ON col.card_id = c.card_id "
-                "WHERE tl.status = 'open'"
-            )
         ).mappings().all()
         return [dict(r) for r in rows]
 
