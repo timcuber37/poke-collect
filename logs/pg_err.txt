@@ -1,47 +1,0 @@
-INFO:kafka.conn:<BrokerConnection node_id=bootstrap-0 host=127.0.0.1:9092 <connecting> [IPv4 ('127.0.0.1', 9092)]>: connecting to 127.0.0.1:9092 [('127.0.0.1', 9092) IPv4]
-INFO:kafka.conn:Probing node bootstrap-0 broker version
-INFO:kafka.conn:<BrokerConnection node_id=bootstrap-0 host=127.0.0.1:9092 <connecting> [IPv4 ('127.0.0.1', 9092)]>: Connection complete.
-INFO:kafka.conn:Broker version identified as 2.6.0
-INFO:kafka.conn:Set configuration api_version=(2, 6, 0) to skip auto check_version requests on startup
-INFO:kafka.consumer.subscription_state:Updating subscribed topics to: ('pokemon-tcg-events',)
-INFO:__main__:Postgres consumer started, listening on topic 'pokemon-tcg-events'
-INFO:kafka.cluster:Group coordinator for postgres-consumer is BrokerMetadata(nodeId='coordinator-1', host='localhost', port=9092, rack=None)
-INFO:kafka.coordinator:Discovered coordinator coordinator-1 for group postgres-consumer
-INFO:kafka.coordinator:Starting new heartbeat thread
-INFO:kafka.coordinator.consumer:Revoking previously assigned partitions set() for group postgres-consumer
-INFO:kafka.conn:<BrokerConnection node_id=coordinator-1 host=localhost:9092 <connecting> [IPv6 ('::1', 9092, 0, 0)]>: connecting to localhost:9092 [('::1', 9092, 0, 0) IPv6]
-INFO:kafka.conn:<BrokerConnection node_id=coordinator-1 host=localhost:9092 <connecting> [IPv6 ('::1', 9092, 0, 0)]>: Connection complete.
-INFO:kafka.conn:<BrokerConnection node_id=bootstrap-0 host=127.0.0.1:9092 <connected> [IPv4 ('127.0.0.1', 9092)]>: Closing connection. 
-INFO:kafka.coordinator:(Re-)joining group postgres-consumer
-INFO:kafka.conn:<BrokerConnection node_id=bootstrap-0 host=127.0.0.1:9092 <connecting> [IPv4 ('127.0.0.1', 9092)]>: connecting to 127.0.0.1:9092 [('127.0.0.1', 9092) IPv4]
-INFO:kafka.conn:<BrokerConnection node_id=bootstrap-0 host=127.0.0.1:9092 <connecting> [IPv4 ('127.0.0.1', 9092)]>: Connection complete.
-INFO:kafka.coordinator:Elected group leader -- performing partition assignments using range
-WARNING:kafka.coordinator.assignors.range:No partition metadata for topic pokemon-tcg-events
-INFO:kafka.coordinator:Successfully joined group postgres-consumer with generation 13
-INFO:kafka.consumer.subscription_state:Updated partition assignment: []
-INFO:kafka.coordinator.consumer:Setting newly assigned partitions set() for group postgres-consumer
-INFO:kafka.coordinator.consumer:Revoking previously assigned partitions set() for group postgres-consumer
-INFO:kafka.coordinator:(Re-)joining group postgres-consumer
-INFO:kafka.coordinator:Elected group leader -- performing partition assignments using range
-INFO:kafka.coordinator:Successfully joined group postgres-consumer with generation 14
-INFO:kafka.consumer.subscription_state:Updated partition assignment: [TopicPartition(topic='pokemon-tcg-events', partition=0)]
-INFO:kafka.coordinator.consumer:Setting newly assigned partitions {TopicPartition(topic='pokemon-tcg-events', partition=0)} for group postgres-consumer
-INFO:kafka.conn:<BrokerConnection node_id=1 host=localhost:9092 <connecting> [IPv6 ('::1', 9092, 0, 0)]>: connecting to localhost:9092 [('::1', 9092, 0, 0) IPv6]
-INFO:kafka.conn:<BrokerConnection node_id=1 host=localhost:9092 <connecting> [IPv6 ('::1', 9092, 0, 0)]>: Connection complete.
-INFO:kafka.conn:<BrokerConnection node_id=bootstrap-0 host=127.0.0.1:9092 <connected> [IPv4 ('127.0.0.1', 9092)]>: Closing connection. 
-INFO:sentence_transformers.SentenceTransformer:Use pytorch device_name: cpu
-INFO:sentence_transformers.SentenceTransformer:Load pretrained SentenceTransformer: all-MiniLM-L6-v2
-Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|##########| 1/1 [00:00<00:00, 34.34it/s]
-INFO:__main__:Postgres: upserted embedding for Pikachu ex - 276/217
-Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|##########| 1/1 [00:00<00:00, 69.24it/s]
-INFO:__main__:Postgres: upserted embedding for Mew ex - 232/091
-Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|##########| 1/1 [00:00<00:00, 71.44it/s]
-INFO:__main__:Postgres: upserted embedding for Charizard GX (Secret)
-Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|##########| 1/1 [00:00<00:00, 100.02it/s]
-INFO:__main__:Postgres: upserted embedding for Charizard GX (Secret)
-Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|##########| 1/1 [00:00<00:00, 75.07it/s]
-INFO:__main__:Postgres: upserted embedding for Charizard GX (Secret)
-Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|##########| 1/1 [00:00<00:00, 63.10it/s]
-INFO:__main__:Postgres: upserted embedding for Charizard GX (Secret)
-Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|##########| 1/1 [00:00<00:00, 76.93it/s]
-INFO:__main__:Postgres: upserted embedding for Charizard GX (Secret)

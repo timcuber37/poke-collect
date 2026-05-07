@@ -1,14 +1,17 @@
 import psycopg2
 import config
 
+PAGE_SIZE = 25
 
-def search_catalog(query: str = "", set_name: str = "", limit: int = 30) -> list[dict]:
+
+def search_catalog(query: str = "", set_name: str = "", page: int = 1) -> tuple[list[dict], int]:
     """
     Search catalog_embeddings by card name and/or set name.
+    Returns (results, total_count) for pagination.
     Pure read-side: never touches MySQL or Kafka.
     """
     if not query and not set_name:
-        return []
+        return [], 0
 
     conditions = ["card_type NOT ILIKE 'Energy%%'"]
     params: list = []
@@ -20,28 +23,33 @@ def search_catalog(query: str = "", set_name: str = "", limit: int = 30) -> list
     if set_name:
         conditions.append("set_name = %s")
         params.append(set_name)
-        limit = 200  # show full set when browsing by set
 
-    params.append(limit)
-    where = " AND ".join(conditions)
+    where  = " AND ".join(conditions)
+    offset = max(0, (page - 1) * PAGE_SIZE)
 
     conn = psycopg2.connect(config.POSTGRES_DSN)
     try:
         with conn.cursor() as cur:
+            cur.execute(
+                f"SELECT COUNT(*) FROM catalog_embeddings WHERE {where}",
+                params,
+            )
+            total = cur.fetchone()[0]
+
             cur.execute(
                 f"""
                 SELECT pokewallet_id, card_name, set_name, rarity, card_type, market_price_usd
                 FROM   catalog_embeddings
                 WHERE  {where}
                 ORDER  BY market_price_usd DESC NULLS LAST, card_name
-                LIMIT  %s
+                LIMIT  %s OFFSET %s
                 """,
-                params,
+                params + [PAGE_SIZE, offset],
             )
             rows = cur.fetchall()
     finally:
         conn.close()
-    return [
+    results = [
         {
             "pokewallet_id":    r[0],
             "card_name":        r[1],
@@ -52,6 +60,7 @@ def search_catalog(query: str = "", set_name: str = "", limit: int = 30) -> list
         }
         for r in rows
     ]
+    return results, total
 
 
 def get_current_prices(card_ids: list[str]) -> dict[str, float | None]:

@@ -1,8 +1,39 @@
+# Environment / secrets
 .env
+.env.local
+.env.*.local
+
+# Python
 venv/
+.venv/
 __pycache__/
 *.pyc
 *.pyo
+*.pyd
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Logs and runtime artifacts
+logs/
+*.log
+.txt
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local-only assets and notes
 Rubric.pdf
 Project Idea.txt
 static/cards/
+
+# Throwaway / scratch scripts (anything prefixed with _)
+_*.py

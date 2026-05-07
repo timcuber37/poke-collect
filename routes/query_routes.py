@@ -4,7 +4,7 @@ from queries.cassandra_queries import (
     get_cards_by_set,
     get_all_set_names,
 )
-from queries.postgres_search import search_catalog, get_catalog_set_names, get_current_prices
+from queries.postgres_search import search_catalog, get_catalog_set_names, get_current_prices, PAGE_SIZE
 from routes.command_routes   import _fetch_and_cache_live_price
 import auth
 
@@ -15,10 +15,23 @@ query_bp = Blueprint("queries", __name__)
 def home():
     query    = request.args.get("q", "").strip()
     set_name = request.args.get("set", "").strip()
-    results  = search_catalog(query=query, set_name=set_name) if (query or set_name) else []
-    set_names = get_catalog_set_names()
-    return render_template("home.html", query=query, set_name=set_name,
-                           results=results, set_names=set_names)
+    try:
+        page = max(1, int(request.args.get("page", 1)))
+    except (TypeError, ValueError):
+        page = 1
+
+    results, total = ([], 0)
+    if query or set_name:
+        results, total = search_catalog(query=query, set_name=set_name, page=page)
+
+    total_pages = (total + PAGE_SIZE - 1) // PAGE_SIZE if total else 0
+    set_names   = get_catalog_set_names()
+    return render_template(
+        "home.html",
+        query=query, set_name=set_name,
+        results=results, set_names=set_names,
+        page=page, total_pages=total_pages, total=total,
+    )
 
 
 @query_bp.route("/collection")

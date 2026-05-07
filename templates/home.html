@@ -24,10 +24,18 @@
     </p>
   </div>
 {% else %}
+  {% set qs = [] %}
+  {% if query %}{% set _ = qs.append('q=' ~ query) %}{% endif %}
+  {% if set_name %}{% set _ = qs.append('set=' ~ set_name) %}{% endif %}
+  {% set base_qs = qs | join('&') %}
+
   <h1 style="font-size:1.2rem;font-weight:500;color:#aaa;margin-bottom:24px;">
-    {{ results|length }} result{{ '' if results|length == 1 else 's' }}
+    {{ total }} result{{ '' if total == 1 else 's' }}
     {% if query %}for "{{ query }}"{% endif %}
     {% if set_name %}in {{ set_name }}{% endif %}
+    {% if total_pages > 1 %}
+      <span style="color:#666;font-size:0.9rem;">· page {{ page }} of {{ total_pages }}</span>
+    {% endif %}
   </h1>
 
   {% if results %}
@@ -62,6 +70,45 @@
         </div>
       {% endfor %}
     </div>
+
+    {% if total_pages > 1 %}
+      <nav style="display:flex;justify-content:center;align-items:center;gap:8px;margin-top:32px;flex-wrap:wrap;">
+        {% if page > 1 %}
+          <a href="/?{{ base_qs }}{% if base_qs %}&{% endif %}page={{ page - 1 }}"
+             class="btn btn-secondary" style="text-decoration:none;">← Prev</a>
+        {% else %}
+          <span class="btn btn-secondary" style="opacity:0.4;cursor:not-allowed;">← Prev</span>
+        {% endif %}
+
+        {% set window_start = [1, page - 2] | max %}
+        {% set window_end   = [total_pages, page + 2] | min %}
+        {% if window_start > 1 %}
+          <a href="/?{{ base_qs }}{% if base_qs %}&{% endif %}page=1"
+             class="btn btn-secondary" style="text-decoration:none;">1</a>
+          {% if window_start > 2 %}<span style="color:#666;">…</span>{% endif %}
+        {% endif %}
+        {% for p in range(window_start, window_end + 1) %}
+          {% if p == page %}
+            <span class="btn" style="cursor:default;">{{ p }}</span>
+          {% else %}
+            <a href="/?{{ base_qs }}{% if base_qs %}&{% endif %}page={{ p }}"
+               class="btn btn-secondary" style="text-decoration:none;">{{ p }}</a>
+          {% endif %}
+        {% endfor %}
+        {% if window_end < total_pages %}
+          {% if window_end < total_pages - 1 %}<span style="color:#666;">…</span>{% endif %}
+          <a href="/?{{ base_qs }}{% if base_qs %}&{% endif %}page={{ total_pages }}"
+             class="btn btn-secondary" style="text-decoration:none;">{{ total_pages }}</a>
+        {% endif %}
+
+        {% if page < total_pages %}
+          <a href="/?{{ base_qs }}{% if base_qs %}&{% endif %}page={{ page + 1 }}"
+             class="btn btn-secondary" style="text-decoration:none;">Next →</a>
+        {% else %}
+          <span class="btn btn-secondary" style="opacity:0.4;cursor:not-allowed;">Next →</span>
+        {% endif %}
+      </nav>
+    {% endif %}
   {% else %}
     <div class="empty-state">
       No cards found. The catalog may still be syncing.
