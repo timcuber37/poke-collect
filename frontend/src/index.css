@@ -248,10 +248,39 @@ h1 { font-size: 1.6rem; margin-bottom: 24px; font-weight: 600; }
   color: #fff; font-weight: 600; font-size: 1.1rem; background: rgba(0,0,0,0.45); letter-spacing: 0.02em;
 }
 .scan-overlay-msg.error { background: rgba(40,0,0,0.5); color: #ffb4b4; }
+/* Non-blocking auto-capture status pill (doesn't dim the feed the user is framing). */
+.scan-detect {
+  position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 999px;
+  background: rgba(0,0,0,0.6); color: #ddd; font-size: 0.85rem; font-weight: 600;
+  letter-spacing: 0.01em; pointer-events: none; white-space: nowrap;
+}
+.scan-detect::before {
+  content: ''; width: 9px; height: 9px; border-radius: 50%; background: #9ca3af;
+}
+.scan-detect.steady { color: #4ade80; }
+.scan-detect.steady::before { background: #4ade80; animation: scan-pulse 0.9s ease-in-out infinite; }
+@keyframes scan-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
 .scan-actions { display: flex; justify-content: center; margin: 18px 0; }
+.scan-capture-controls { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.scan-auto-toggle {
+  display: flex; align-items: center; gap: 7px; color: #aaa; font-size: 0.88rem; cursor: pointer;
+  user-select: none;
+}
+.scan-auto-toggle input { cursor: pointer; accent-color: #4ade80; }
+.scan-auto-toggle input:disabled { cursor: default; }
 .scan-error { color: #ffb4b4; }
 .scan-parsed { color: #aaa; text-align: center; margin-bottom: 16px; font-size: 0.95rem; }
 .scan-parsed strong { color: #fff; }
+/* Phase 2.5 tuning-corpus capture (only shown when server debug is enabled). */
+.scan-debug { max-width: 720px; margin: 20px auto 0; }
+.scan-debug summary { cursor: pointer; color: #888; font-size: 0.9rem; }
+.scan-debug button { margin: 10px 0; }
+.scan-debug pre {
+  padding: 12px; background: #111; border: 1px solid #262626; border-radius: 8px;
+  color: #ccc; font-size: 0.8rem; white-space: pre-wrap; word-break: break-word;
+  max-height: 260px; overflow: auto;
+}
 .scan-candidates {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px;
 }
@@ -266,4 +295,28 @@ h1 { font-size: 1.6rem; margin-bottom: 24px; font-weight: 600; }
 }
 .scan-candidate .nm { font-weight: 600; font-size: 0.9rem; }
 .scan-candidate .set { color: #888; font-size: 0.78rem; }
-.scan-candidate .btn { width: 100%; margin-top: auto; }
+.scan-candidate .scan-condition {
+  width: 100%; margin-top: auto; background: #1f1f1f; color: #ddd; border: 1px solid #2f2f2f;
+  border-radius: 6px; padding: 7px 8px; font-size: 0.8rem; cursor: pointer; outline: none;
+}
+.scan-condition:focus { border-color: #4a4a4a; color: #fff; }
+.scan-condition:disabled { opacity: 0.5; cursor: default; }
+.scan-condition option { background: #141414; color: #fff; }
+.scan-candidate .btn { width: 100%; }
+/* Auto-select tier (Phase 3d): confident top match presented as the answer. */
+.scan-autoselect { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.scan-autoselect .scan-candidates { width: 100%; margin-top: 4px; }
+.scan-best-label { color: #4ade80; font-weight: 600; font-size: 0.9rem; letter-spacing: 0.01em; }
+.scan-candidate--hero { max-width: 260px; border-color: #2f6b45; box-shadow: 0 0 0 1px #4ade80 inset; }
+.scan-candidate--hero img { width: 62%; }
+.scan-more-link {
+  background: none; border: none; color: #9ca3af; cursor: pointer;
+  font-size: 0.85rem; text-decoration: underline; padding: 4px;
+}
+.scan-more-link:hover { color: #fff; }
+.scan-subhead { text-align: center; color: #888; font-size: 0.85rem; margin: 4px 0 12px; }
+.scan-hint-low {
+  max-width: 720px; margin: 0 auto 12px; padding: 12px 16px; border-radius: 8px;
+  background: rgba(120, 90, 0, 0.18); border: 1px solid #5a4a1a; color: #e6c86a;
+  font-size: 0.9rem; text-align: center;
+}

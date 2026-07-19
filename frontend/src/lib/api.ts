@@ -33,6 +33,7 @@ export interface CardDto {
   rarity: string
   cardType: string
   marketPriceUsd: number | null
+  cardNumber?: string | null
 }
 
 export interface SearchResponse {
@@ -101,9 +102,23 @@ export interface ScanCandidate {
   confidence: number
 }
 
+export interface OcrWord {
+  text: string
+  height: number
+  top: number
+  left: number
+}
+
+// Present only when the server's scan debug capture is enabled (Phase 2.5).
+export interface ScanDebug {
+  fullText: string
+  words: OcrWord[]
+}
+
 export interface ScanResponse {
   candidates: ScanCandidate[]
   parsed: ParsedCard
+  debug?: ScanDebug | null
 }
 
 export const cardImageUrl = (id: string, size: 'low' | 'high' = 'low') =>

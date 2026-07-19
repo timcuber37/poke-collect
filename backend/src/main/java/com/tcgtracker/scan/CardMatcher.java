@@ -4,6 +4,8 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.springframework.stereotype.Component;
 
@@ -21,9 +23,14 @@ public class CardMatcher {
 
     private static final int POOL_LIMIT = 80;
 
-    // Score weights: an exact collector-number hit dominates; name similarity refines.
+    // Score weights: an exact collector-number hit dominates; a numerator-only hit
+    // (set total garbled by OCR) is nearly as strong; name similarity refines.
     private static final double NUMBER_WEIGHT = 0.6;
+    private static final double NUMBER_INDEX_WEIGHT = 0.5;
     private static final double NAME_WEIGHT = 0.4;
+
+    // Pure "index/total" collector number, e.g. "024/086".
+    private static final Pattern PURE_FRACTION = Pattern.compile("(\\d{1,3})/(\\d{1,3})");
 
     private final CatalogSearchService catalog;
 
@@ -38,7 +45,7 @@ public class CardMatcher {
         // Gather a candidate pool by number and/or name, de-duplicated by id.
         Map<String, CardDto> pool = new LinkedHashMap<>();
         if (parsed.collectorNumber() != null) {
-            for (CardDto c : catalog.findByCardNameContains(parsed.collectorNumber(), POOL_LIMIT)) {
+            for (CardDto c : catalog.findByCardNumber(parsed.collectorNumber(), POOL_LIMIT)) {
                 pool.putIfAbsent(c.pokewalletId(), c);
             }
         }
@@ -57,19 +64,75 @@ public class CardMatcher {
             .toList();
     }
 
-    /** 0..1 confidence: collector-number exactness + name similarity. */
+    /**
+     * 0..1 confidence: collector-number match + name similarity. An exact, plausible
+     * number match scores highest; failing that, a matching numerator (the index within
+     * the set — reliably OCR'd even when the set total is garbled, e.g. "024/006" for
+     * 024/086) scores nearly as high, with the name breaking ties across sets.
+     */
     static double score(ParsedCard parsed, CardDto card) {
         double score = 0;
-        String cardName = card.cardName() == null ? "" : card.cardName().toLowerCase();
 
-        if (parsed.collectorNumber() != null
-                && cardName.contains(parsed.collectorNumber().toLowerCase())) {
-            score += NUMBER_WEIGHT;
+        String parsedNum = parsed.collectorNumber();
+        String cardNum = card.cardNumber();
+        if (parsedNum != null && cardNum != null) {
+            if (isPlausible(parsedNum) && sameNumber(parsedNum, cardNum)) {
+                score += NUMBER_WEIGHT;
+            } else if (numerator(parsedNum) != null && numerator(parsedNum).equals(numerator(cardNum))) {
+                score += NUMBER_INDEX_WEIGHT;
+            }
         }
         if (parsed.name() != null && !parsed.name().isBlank()) {
             score += NAME_WEIGHT * nameSimilarity(parsed.name(), baseName(card.cardName()));
         }
         return Math.min(1.0, score);
+    }
+
+    /**
+     * Collector-number equality that ignores leading-zero padding, so an OCR read of
+     * "46/132" matches the catalog's "046/132" (many scans drop the leading zero). Pure
+     * "index/total" numbers compare by integer index and total; other formats
+     * (TG12/TG30, SWSH123) compare case-insensitively as printed.
+     */
+    static boolean sameNumber(String a, String b) {
+        if (a == null || b == null) {
+            return false;
+        }
+        Matcher ma = PURE_FRACTION.matcher(a);
+        Matcher mb = PURE_FRACTION.matcher(b);
+        if (ma.matches() && mb.matches()) {
+            return Integer.parseInt(ma.group(1)) == Integer.parseInt(mb.group(1))
+                && Integer.parseInt(ma.group(2)) == Integer.parseInt(mb.group(2));
+        }
+        return a.equalsIgnoreCase(b);
+    }
+
+    /**
+     * The index (numerator) of a pure "index/total" number, normalized without leading
+     * zeros ("24" from "024/086" or "24/086"); null for non-fraction formats.
+     */
+    static String numerator(String number) {
+        if (number == null) {
+            return null;
+        }
+        Matcher m = PURE_FRACTION.matcher(number);
+        return m.matches() ? String.valueOf(Integer.parseInt(m.group(1))) : null;
+    }
+
+    /**
+     * A pure "index/total" number is implausible when the index far exceeds the set
+     * total (e.g. "099/006", a misread) — guarded so a garbled number can't win a full
+     * exact-match bonus against a wrong catalog card. 2× slack admits secret rares
+     * (199/197). Non-fraction formats (TG12/TG30, SWSH123) are always plausible.
+     */
+    static boolean isPlausible(String number) {
+        Matcher m = PURE_FRACTION.matcher(number == null ? "" : number);
+        if (!m.matches()) {
+            return true;
+        }
+        int index = Integer.parseInt(m.group(1));
+        int total = Integer.parseInt(m.group(2));
+        return total > 0 && index <= 2 * total;
     }
 
     /** Catalog names embed the number ("Xerneas - 091/086"); strip it for name comparison. */

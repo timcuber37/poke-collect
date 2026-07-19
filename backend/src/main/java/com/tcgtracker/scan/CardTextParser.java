@@ -50,6 +50,8 @@ public class CardTextParser {
         for (Pattern p : NUMBER_PATTERNS) {
             Matcher m = p.matcher(fullText);
             if (m.find()) {
+                // Report the raw read (e.g. "024/006"); the matcher decides how to use
+                // it — the numerator is reliable even when OCR garbles the set total.
                 return m.group().replaceAll("\\s+", "");
             }
         }
@@ -111,6 +113,13 @@ public class CardTextParser {
         }
         String up = s.toUpperCase();
         if (up.equals("HP") || up.matches("BASIC|STAGE|STAGE1|STAGE2|EVOLVES")) {
+            return false;
+        }
+        // The HP stat sits top-right, level with the name, so OCR often glues it into a
+        // single token on the title baseline — "HP190", or "HD190"/"HN190" when the P is
+        // misread. No real card name looks like this, so drop it before it corrupts the
+        // name (which otherwise pulls the match to the wrong card, e.g. Mewtwo GX → EX).
+        if (up.matches("H[A-Z]\\d{2,3}")) {
             return false;
         }
         return !s.matches(".*\\d{1,3}\\s*/\\s*\\d{1,3}.*"); // contains a collector number

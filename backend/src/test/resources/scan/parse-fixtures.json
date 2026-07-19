@@ -1,0 +1,96 @@
+[
+  {
+    "label": "Xerneas — number 091/086 (title picked from word boxes)",
+    "fullText": "Xerneas\nHP 110\nGeomancy\n091/086",
+    "words": [
+      { "text": "Xerneas", "height": 40, "top": 20, "left": 30 },
+      { "text": "HP", "height": 15, "top": 22, "left": 300 },
+      { "text": "110", "height": 15, "top": 22, "left": 330 },
+      { "text": "091/086", "height": 18, "top": 600, "left": 300 }
+    ],
+    "expectedName": "Xerneas",
+    "expectedNumber": "091/086"
+  },
+  {
+    "label": "Pikachu — promo number SWSH123",
+    "fullText": "Pikachu\nHP 60\nSWSH123",
+    "words": [
+      { "text": "Pikachu", "height": 38, "top": 25, "left": 40 },
+      { "text": "SWSH123", "height": 16, "top": 580, "left": 320 }
+    ],
+    "expectedName": "Pikachu",
+    "expectedNumber": "SWSH123"
+  },
+  {
+    "label": "Rayquaza VMAX — Trainer Gallery TG12/TG30 (VMAX excluded from title by height)",
+    "fullText": "Rayquaza VMAX\nHP 320\nTG12/TG30",
+    "words": [
+      { "text": "Rayquaza", "height": 42, "top": 22, "left": 35 },
+      { "text": "VMAX", "height": 20, "top": 24, "left": 330 },
+      { "text": "TG12/TG30", "height": 16, "top": 600, "left": 300 }
+    ],
+    "expectedName": "Rayquaza",
+    "expectedNumber": "TG12/TG30"
+  },
+
+  {
+    "label": "REAL Skuntank scan — number read correctly amid noisy OCR (054/086)",
+    "fullText": "AGE\nSkuntank\n110\n00\nRear Kick\nSmash Turn\n40\n40\n100\nSwitch this Pokemon with I of your Benched Pokemon\n×2\nance\nStartacks tas spe\nBas Yorks Akan\n054/086\ntail, but the stock\n00",
+    "expectedNumber": "054/086"
+  },
+  {
+    "label": "REAL Fennekin scan — number read amid noise prefix/suffix (011/086)",
+    "fullText": "BASIC\nFennekin\n70\nCall for Family\nSearch your deck for up to 2 Basic Pokémon and put them\nonto your Bench. Then, shuffle your deck.\nSteady Firebreathing\n10\nCRON 011/086-",
+    "expectedNumber": "011/086"
+  },
+  {
+    "label": "REAL Octillery scan (1080p) — number now read correctly (017/086)",
+    "fullText": "STAGE Octillery\nHP 110\nJet of Ink\n30\nDuring your opponent's next turn, if the Defending\nPokémon tries to use an attack, your opponent flips 2 coins.\nIf either of them is tails, that attack doesn't happen.\nTantrum\nThis Pokémon is now Confused.\n120\nweakness x2 resistance\nCRI 017/086-\nretreat\nIts instinct is to bury itself in holes. It often steals\nthe nesting holes of others to sleep in them\nBus Poken/intendo/Creatures GAME FREAK",
+    "expectedNumber": "017/086"
+  },
+  {
+    "label": "REAL Emolga scan (1080p) — bottom margin recovered the number (030/086)",
+    "fullText": "BASIC\nEmolga\n70\nMinor Errand-Running\nSearch your deck for up to 2 Basic Energy cards, reveal\nthem, and put them into your hand. Then, shuffle your deck.\nF\nSky Return\n30\nPut this Pokémon and all attached cards into your hand.\n*2 resistance\nCRI 030/086\nretreat\nThe ergy made in its cheeks' electio\npouches isstored inside its patagil\nmesbraces and releasedwhile it is gliding",
+    "expectedNumber": "030/086"
+  },
+  {
+    "label": "REAL Avalugg scan (1080p) — set total misread (024/006 of 024/086); matcher recovers via numerator",
+    "fullText": "STAGE\nAvalugg\n160\nIceberg Breaker\n60*\nDiscard the top 6 cards of your deck, and this attack does\n60 damage for each Basic Energy card you discarded in\nthis way\nFrost Stamp\n160\n642\nresistance\nCRI 024/006\nretreat\nsice comodwashand as steel senorinaut\nfibes anything that stands was",
+    "expectedNumber": "024/006"
+  },
+  {
+    "label": "REAL Ninetales scan (1080p) — bottom still out of frame, number not captured (needs re-scan)",
+    "fullText": "STAGE Ninetales\n<120-\nNine-Tailed Transfer\nMove all damage counters from 1 of your Benched Pokemon\nto your opponent's Active Pokémon\nWill-O-Wisp\n70\n70",
+    "expectNoNumber": true
+  },
+
+  {
+    "label": "REAL Mewtwo GX scan (1080p) — HP stat 'HP190' sits level with the title and must not glue into the name",
+    "fullText": "BASIC\nMewtwo GX\nHP190\nFull Burst\nPsystrike GX",
+    "words": [
+      { "text": "HP190", "height": 48, "top": 89, "left": 471 },
+      { "text": "GX", "height": 36, "top": 100, "left": 319 },
+      { "text": "Mewtwo", "height": 39, "top": 103, "left": 175 },
+      { "text": "BASIC", "height": 15, "top": 122, "left": 94 },
+      { "text": "Full", "height": 14, "top": 300, "left": 90 },
+      { "text": "Burst", "height": 14, "top": 300, "left": 130 },
+      { "text": "body", "height": 10, "top": 800, "left": 80 }
+    ],
+    "expectedName": "Mewtwo GX",
+    "expectNoNumber": true
+  },
+
+  {
+    "label": "REAL Marshadow scan (1080p) — clean name; unpadded number 46/132 read from a noisy bottom line",
+    "fullText": "BASIC\nMarshadow\n06\nShadowy Side Kick\nDMEG 46/132",
+    "words": [
+      { "text": "06", "height": 38, "top": 124, "left": 527 },
+      { "text": "BASIC", "height": 9, "top": 125, "left": 139 },
+      { "text": "Marshadow", "height": 29, "top": 127, "left": 217 },
+      { "text": "Shadowy", "height": 14, "top": 300, "left": 90 },
+      { "text": "46/132", "height": 12, "top": 790, "left": 300 }
+    ],
+    "expectedName": "Marshadow",
+    "expectedNumber": "46/132"
+  }
+]

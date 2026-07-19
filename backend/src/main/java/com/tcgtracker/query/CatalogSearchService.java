@@ -49,7 +49,8 @@ public class CatalogSearchService {
             rs.getString("set_name"),
             rs.getString("rarity"),
             rs.getString("card_type"),
-            price == null ? null : ((Number) price).doubleValue()
+            price == null ? null : ((Number) price).doubleValue(),
+            rs.getString("card_number")
         );
     };
 
@@ -90,7 +91,7 @@ public class CatalogSearchService {
         pagedParams.add(offset);
 
         List<CardDto> results = pg.query(
-            "SELECT pokewallet_id, card_name, set_name, rarity, card_type, market_price_usd " +
+            "SELECT pokewallet_id, card_name, set_name, rarity, card_type, market_price_usd, card_number " +
             "FROM catalog_embeddings WHERE " + where + " " +
             "ORDER BY market_price_usd DESC NULLS LAST, card_name LIMIT ? OFFSET ?",
             CARD_MAPPER, pagedParams.toArray());
@@ -110,10 +111,27 @@ public class CatalogSearchService {
             return List.of();
         }
         return pg.query(
-            "SELECT pokewallet_id, card_name, set_name, rarity, card_type, market_price_usd " +
+            "SELECT pokewallet_id, card_name, set_name, rarity, card_type, market_price_usd, card_number " +
             "FROM catalog_embeddings WHERE card_type NOT ILIKE 'Energy%' AND card_name ILIKE ? " +
             "ORDER BY market_price_usd DESC NULLS LAST, card_name LIMIT ?",
             CARD_MAPPER, "%" + fragment + "%", limit);
+    }
+
+    /**
+     * Cards whose collector number equals {@code number} (e.g. "054/086"), excluding
+     * Energy. The strong signal for card-scan matching now that the catalog stores the
+     * number in its own column. Exact match — the number's set-total denominator
+     * disambiguates printings across sets. Empty list for a blank number.
+     */
+    public List<CardDto> findByCardNumber(String number, int limit) {
+        if (number == null || number.isBlank()) {
+            return List.of();
+        }
+        return pg.query(
+            "SELECT pokewallet_id, card_name, set_name, rarity, card_type, market_price_usd, card_number " +
+            "FROM catalog_embeddings WHERE card_type NOT ILIKE 'Energy%' AND card_number = ? " +
+            "ORDER BY market_price_usd DESC NULLS LAST, card_name LIMIT ?",
+            CARD_MAPPER, number, limit);
     }
 
     /** Distinct set names, optionally limited to sets containing matches for {@code query}. */

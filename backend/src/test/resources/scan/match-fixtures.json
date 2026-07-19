@@ -1,0 +1,54 @@
+[
+  {
+    "label": "collector number pins the right printing across same-name sets",
+    "parsed": { "name": "Fennekin", "collectorNumber": "011/086" },
+    "candidates": [
+      { "cardName": "Fennekin", "cardNumber": "011/086" },
+      { "cardName": "Fennekin", "cardNumber": "012/086" },
+      { "cardName": "Fennekin", "cardNumber": "007/122" }
+    ],
+    "expectedBest": "011/086",
+    "expectedMinConfidence": 0.95
+  },
+  {
+    "label": "name breaks the tie when no number was read",
+    "parsed": { "name": "Charizard", "collectorNumber": null },
+    "candidates": [
+      { "cardName": "Charizard", "cardNumber": "004/102" },
+      { "cardName": "Charmander", "cardNumber": "003/102" },
+      { "cardName": "Charmeleon", "cardNumber": "009/102" }
+    ],
+    "expectedBest": "004/102"
+  },
+  {
+    "label": "exact number beats a same-name wrong-number sibling",
+    "parsed": { "name": "Skuntank", "collectorNumber": "054/086" },
+    "candidates": [
+      { "cardName": "Skuntank", "cardNumber": "054/086" },
+      { "cardName": "Skuntank", "cardNumber": "051/086" }
+    ],
+    "expectedBest": "054/086",
+    "expectedMinConfidence": 0.95
+  },
+  {
+    "label": "set total misread (024/006 of 024/086) — numerator + name still identify the card",
+    "parsed": { "name": "Avalugg", "collectorNumber": "024/006" },
+    "candidates": [
+      { "cardName": "Avalugg", "cardNumber": "024/086" },
+      { "cardName": "Avalugg", "cardNumber": "112/159" },
+      { "cardName": "Bergmite", "cardNumber": "024/086" }
+    ],
+    "expectedBest": "024/086",
+    "expectedMinConfidence": 0.85
+  },
+  {
+    "label": "unpadded OCR number (46/132) matches the catalog's zero-padded 046/132",
+    "parsed": { "name": "Marshadow", "collectorNumber": "46/132" },
+    "candidates": [
+      { "cardName": "Marshadow", "cardNumber": "046/132" },
+      { "cardName": "Marshadow GX", "cardNumber": "080/147" }
+    ],
+    "expectedBest": "046/132",
+    "expectedMinConfidence": 0.95
+  }
+]

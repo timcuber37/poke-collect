@@ -39,9 +39,10 @@ public class CatalogRefreshService {
         "INSERT INTO cards_by_set (set_name, card_id, card_name, rarity, card_type, pokewallet_id) " +
         "VALUES (?, ?, ?, ?, ?, ?)";
     private static final String PG_UPSERT =
-        "INSERT INTO catalog_embeddings (pokewallet_id, card_name, set_name, rarity, card_type, market_price_usd) " +
-        "VALUES (?, ?, ?, ?, ?, ?) " +
+        "INSERT INTO catalog_embeddings (pokewallet_id, card_name, card_number, set_name, rarity, card_type, market_price_usd) " +
+        "VALUES (?, ?, ?, ?, ?, ?, ?) " +
         "ON CONFLICT (pokewallet_id) DO UPDATE SET " +
+        "  card_number = COALESCE(EXCLUDED.card_number, catalog_embeddings.card_number), " +
         "  market_price_usd = COALESCE(EXCLUDED.market_price_usd, catalog_embeddings.market_price_usd), " +
         "  updated_at = NOW()";
 
@@ -103,6 +104,7 @@ public class CatalogRefreshService {
         JsonNode info = card.path("card_info");
         String cardId = card.path("id").asText("");
         String cardName = info.path("name").asText(info.path("clean_name").asText(""));
+        String cardNumber = info.path("card_number").asText(null); // e.g. "054/086"; null if absent
         String rarity = info.path("rarity").asText("Unknown");
         String cardType = info.path("card_type").asText("Unknown");
         Double price = pokewallet.extractTcgPlayerPrice(card);
@@ -117,7 +119,7 @@ public class CatalogRefreshService {
             cql.execute(SimpleStatement.newInstance(CASS_INSERT_NOPRICE,
                 setName, cardId, cardName, rarity, cardType, cardId));
         }
-        pg.update(PG_UPSERT, cardId, cardName, setName, rarity, cardType, price);
+        pg.update(PG_UPSERT, cardId, cardName, cardNumber, setName, rarity, cardType, price);
         return true;
     }
 

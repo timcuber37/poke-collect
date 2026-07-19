@@ -33,7 +33,8 @@ public class MarketService {
                 c.getSetName(),
                 c.getRarity(),
                 c.getCardType(),
-                c.getMarketPriceUsd() == null ? null : c.getMarketPriceUsd().doubleValue()))
+                c.getMarketPriceUsd() == null ? null : c.getMarketPriceUsd().doubleValue(),
+                null)) // cards_by_set (Cassandra) has no collector number
             .toList();
     }
 

@@ -41,6 +41,12 @@ class CardTextParserTest {
         assertNull(CardTextParser.extractCollectorNumber("Charizard  Base Set  Fire"));
     }
 
+    @Test
+    void extractsSecretRareNumberedAboveSetTotal() {
+        // Raw read is preserved; plausibility/index handling lives in the matcher now.
+        assertEquals("199/197", CardTextParser.extractCollectorNumber("Charizard VMAX\n199/197\nSecret"));
+    }
+
     // ---- name extraction from word boxes ----
 
     @Test
@@ -57,6 +63,22 @@ class CardTextParserTest {
         ParsedCard parsed = parser.parse(ocr);
         assertEquals("Xerneas", parsed.name());
         assertEquals("091/086", parsed.collectorNumber());
+    }
+
+    @Test
+    void dropsHpStatGluedIntoTitleBaseline() {
+        // The HP stat sits top-right, level with the name; OCR often reads it as one
+        // token ("HP190", or "HD190" when the P is garbled). It must not join the name.
+        OcrResult ocr = new OcrResult(
+            "Basic\nMewtwo GX\nHP190",
+            List.of(
+                new OcrWord("HP190", 48, 89, 471),   // HP stat, tallest, on the title baseline
+                new OcrWord("GX", 36, 100, 319),
+                new OcrWord("Mewtwo", 39, 103, 175),
+                new OcrWord("Basic", 15, 122, 94),    // stage label
+                new OcrWord("body", 10, 800, 80)      // anchors image scale
+            ));
+        assertEquals("Mewtwo GX", parser.parse(ocr).name());
     }
 
     @Test

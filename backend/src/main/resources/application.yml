@@ -101,6 +101,21 @@ google:
     api-key: ${GOOGLE_VISION_API_KEY:}
     endpoint: https://vision.googleapis.com/v1/images:annotate
 
+# ── Card-scan rate limit (each scan = one paid Vision unit) ──────────────────
+# Per-user token bucket: `capacity` scans available as a burst, refilling at
+# `refill-per-minute`. Over-limit requests get 429 + Retry-After.
+scan:
+  rate-limit:
+    capacity: ${SCAN_RATE_LIMIT_CAPACITY:20}
+    refill-per-minute: ${SCAN_RATE_LIMIT_REFILL:10}
+  # Phase 2.5 tuning-corpus capture. When enabled, each scan's raw OCR is attached
+  # to the response (shown in the SPA) and logged on the `scan.capture` logger; set
+  # capture-file to also append a durable JSONL corpus. Keep disabled outside
+  # corpus-building sessions — it exposes OCR internals in the response.
+  debug:
+    enabled: ${SCAN_DEBUG_ENABLED:false}
+    capture-file: ${SCAN_DEBUG_CAPTURE_FILE:}
+
 # ── Profile-specific overrides ───────────────────────────────────────────────
 # The consumer (@KafkaListener) and sync (@Scheduled) roles are headless — they
 # don't serve HTTP, so they skip the web server. Run them as separate instances:
