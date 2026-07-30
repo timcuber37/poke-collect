@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { type CardDto, cardImageUrl, onCardImageError } from '../lib/api'
 
-function CardTile({ card, onAdd }: { card: CardDto; onAdd?: (c: CardDto) => Promise<void> }) {
+function CardTile({ card, onAdd, owned }: { card: CardDto; onAdd?: (c: CardDto) => Promise<void>; owned: number }) {
   const [state, setState] = useState<'idle' | 'busy' | 'added'>('idle')
 
   const add = async () => {
@@ -22,6 +22,7 @@ function CardTile({ card, onAdd }: { card: CardDto; onAdd?: (c: CardDto) => Prom
       <div className="card-name">{card.cardName}</div>
       <div className="card-meta">{card.setName}</div>
       <span className="badge">{card.rarity}</span>
+      {owned > 0 && <span className="badge badge-owned" title="Copies in your collection">✓ {owned} owned</span>}
       {card.marketPriceUsd != null && <div className="price">${card.marketPriceUsd.toFixed(2)}</div>}
       {onAdd && (
         <button className="btn btn-block" style={{ marginTop: 12 }} onClick={add}
@@ -33,10 +34,17 @@ function CardTile({ card, onAdd }: { card: CardDto; onAdd?: (c: CardDto) => Prom
   )
 }
 
-export default function CardGrid({ cards, onAdd }: { cards: CardDto[]; onAdd?: (c: CardDto) => Promise<void> }) {
+export default function CardGrid({ cards, onAdd, owned }: {
+  cards: CardDto[]
+  onAdd?: (c: CardDto) => Promise<void>
+  /** cardId → copies the signed-in user owns; omitted when signed out. */
+  owned?: Map<string, number>
+}) {
   return (
     <div className="card-grid">
-      {cards.map((c) => <CardTile key={c.pokewalletId} card={c} onAdd={onAdd} />)}
+      {cards.map((c) => (
+        <CardTile key={c.pokewalletId} card={c} onAdd={onAdd} owned={owned?.get(c.pokewalletId) ?? 0} />
+      ))}
     </div>
   )
 }

@@ -12,11 +12,15 @@ export default function TopBar({ onSignIn }: { onSignIn: () => void }) {
   const urlSet = params.get('set') ?? ''
 
   const [query, setQuery] = useState(urlQuery)
+  // Pending set selection: picking a set alone doesn't search (that would burn an
+  // API call per click); it's applied when the form is submitted.
+  const [set, setSet] = useState(urlSet)
   const [setNames, setSetNames] = useState<string[]>([])
   const [menuOpen, setMenuOpen] = useState(false)
   const wrapRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => setQuery(urlQuery), [urlQuery])
+  useEffect(() => setSet(urlSet), [urlSet])
 
   // Query-aware set list for the dropdown.
   useEffect(() => {
@@ -45,8 +49,8 @@ export default function TopBar({ onSignIn }: { onSignIn: () => void }) {
         <Link className="brand" to="/">TCG<span className="brand-dot">·</span>Tracker</Link>
       </div>
 
-      <form className="search-form" onSubmit={(e) => { e.preventDefault(); go(query.trim(), urlSet) }} role="search">
-        <select className="set-select" value={urlSet} onChange={(e) => go(query.trim(), e.target.value)}>
+      <form className="search-form" onSubmit={(e) => { e.preventDefault(); go(query.trim(), set) }} role="search">
+        <select className="set-select" value={set} onChange={(e) => setSet(e.target.value)}>
           <option value="">All Sets</option>
           {setNames.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>

@@ -100,6 +100,8 @@ h1 { font-size: 1.6rem; margin-bottom: 24px; font-weight: 600; }
 .card-meta { font-size: 0.8rem; color: #888; margin-top: 4px; }
 .price { color: #fff; font-weight: 600; margin-top: 8px; font-size: 0.9rem; }
 .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: 500; background: #1f1f1f; color: #ccc; margin-top: 8px; }
+/* "N owned" pill on search results — sits beside the rarity badge. */
+.badge-owned { background: #16301f; color: #4ade80; margin-left: 6px; }
 
 /* ---- Buttons ---- */
 .btn { padding: 8px 14px; background: #fff; color: #000; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500; }
@@ -141,27 +143,143 @@ h1 { font-size: 1.6rem; margin-bottom: 24px; font-weight: 600; }
 
 /* ---- Binder ---- */
 .binder-wrap { display: flex; flex-direction: column; align-items: center; gap: 20px; width: 100%; }
-/* Fixed-size clipping viewport for the open spread (2 * 420 wide, 580 tall).
-   Clipping the page-turn sweep stops it overflowing the document and spawning
-   flickering scrollbars, which were shifting the centered book and causing jitter. */
-.binder-flip { position: relative; width: 840px; max-width: 100%; height: 580px; overflow: hidden; }
-.binder-book { margin: 0 auto; }
 
-/* Each leaf of the book holds a 3x3 page of pockets. */
-.binder-book .page {
-  width: 100%; height: 100%; box-sizing: border-box;
-  background: #141414; border: 1px solid #242424; padding: 14px; overflow: hidden;
+/* PAGE_W in Binder.tsx must match --page-w: the drag maps pointer travel across
+   one page onto turn progress, and the hinges sit at each third of it. */
+.binder-flip {
+  --page-w: 420px;
+  --page-h: 580px;
+  --pocket-gap: 10px;
+  /* Black page margin at the outer edge, top and bottom. The spine edge keeps a
+     tight --pocket-gap/2 so the spine shadow has something to sit on.
+     Columns are NOT equal thirds: with equal panels the outer margin is forced to
+     equal half the gutter, so matching it to --page-pad would drag the gutters out
+     to 24px. Sizing the outer panel wider instead keeps the cards identical, the
+     gutters at --pocket-gap, and the hinges exactly on the gutter centres. */
+  --page-pad: 12px;
+  --card-w: calc((var(--page-w) - var(--page-pad) - 2.5 * var(--pocket-gap)) / 3);
+  --panel-in: calc(var(--card-w) + var(--pocket-gap));
+  --panel-out: calc(var(--card-w) + var(--pocket-gap) / 2 + var(--page-pad));
+  /* Cover lip: the binder's cover standing proud of the pages on all four sides.
+     It's the grab handle for a page turn — pointerdown anywhere on .binder-book
+     starts a drag, and this gives a strip of that which isn't a card. Widening it
+     only moves where the pages sit inside the book, so the hinge geometry (panels
+     at each third of --page-w) is untouched. */
+  --lip: 18px;
+  /* Cover material. Only the lip wears it — every page-sized surface inside the
+     binder, covers included, uses --page-bg so they read as one continuous stack. */
+  --cover: linear-gradient(145deg, #0aa8d8 0%, #05364a 100%);
+  --page-bg: #141414;
+  position: relative; margin: 0 auto; max-width: 100%;
+  width: calc(var(--page-w) * 2 + var(--lip) * 2);
+  height: calc(var(--page-h) + var(--lip) * 2);
+  /* Perspective and clipping live here; preserve-3d lives on .binder-book below.
+     They must stay on separate elements — any overflow other than visible on an
+     element that also has preserve-3d flattens its 3D subtree, which is the usual
+     reason a CSS 3D book renders dead flat. `clip` (rather than `hidden`) plus a
+     margin lets the fold bulge past the spread without making a scroll container,
+     which is what used to cause flickering scrollbars and book jitter.
+     The margin has to clear the *projected* envelope of the fold, not the flat
+     page: mid-turn the leaf swings toward the viewer and perspective magnifies it
+     roughly 60px past the spread on every side. `clip` never creates a scroll
+     container at any margin, so this is generous on purpose. */
+  perspective: 1800px; perspective-origin: 50% 50%;
+  overflow: clip; overflow-clip-margin: 120px;
+  touch-action: none;
 }
-.page-grid {
-  display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr);
-  gap: 8px; width: 100%; height: 100%;
+/* The cover itself — same material as the back cover, so the lip reads as the
+   binder showing around its pages rather than as a border. */
+.binder-book {
+  position: relative; width: 100%; height: 100%; transform-style: preserve-3d;
+  background: var(--cover);
+  border: 1px solid #0b7ea3; border-radius: 10px; cursor: grab;
+  /* A page turn is a drag across text and images, which the browser would
+     otherwise treat as a selection gesture and highlight everything swept over.
+     Can't fix this by preventDefault-ing pointerdown — that would also kill the
+     clicks on the pocket and remove buttons. */
+  user-select: none; -webkit-user-select: none;
+}
+.binder-book:active { cursor: grabbing; }
+/* Seats the pages into the cover. Only the ring *outside* the page rect is drawn:
+   ::before paints before the sides do, so anything it puts inside that rect would
+   be covered by the pages themselves. */
+.binder-book::before {
+  content: ''; position: absolute; inset: var(--lip); border-radius: 2px; pointer-events: none;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.6), 0 0 14px 2px rgba(0,0,0,0.45);
 }
 
-.pocket { position: relative; border-radius: 6px; background: #0a0a0a; border: 1px solid #2a2a2a; overflow: hidden; }
+/* The two resting sides of the open spread. A turning leaf covers the right one. */
+.binder-side {
+  position: absolute; top: var(--lip); width: var(--page-w);
+  height: calc(100% - var(--lip) * 2); background: var(--page-bg);
+}
+.binder-side.left  { left: var(--lip); }
+.binder-side.right { left: calc(var(--lip) + var(--page-w)); }
+.binder-face { position: absolute; inset: 0; display: flex; }
+
+/* Spine depth: a soft inset darkening toward the binding edge. */
+.binder-side.left  { box-shadow: inset -16px 0 26px -18px rgba(0,0,0,0.75); }
+.binder-side.right { box-shadow: inset  16px 0 26px -18px rgba(0,0,0,0.75); }
+
+/* The turning leaf: three column panels nested one inside the next, each hinged
+   at its own gutter so the rotations compound (see lib/binderFlip.ts). The leaf
+   is one third of a page wide — panel 0 fills it, and panels 1 and 2 hang off the
+   right edge of their parent. */
+.binder-leaf {
+  position: absolute; top: var(--lip); left: calc(var(--lip) + var(--page-w));
+  height: calc(100% - var(--lip) * 2);
+  width: var(--panel-in); transform-style: preserve-3d; z-index: 10;
+}
+.leaf-col {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  transform-style: preserve-3d; transform-origin: 0 50%;
+}
+.leaf-col .leaf-col { left: 100%; width: var(--panel-in); }
+/* Three levels deep is the outermost panel — it carries the wider page margin. */
+.leaf-col .leaf-col .leaf-col { width: var(--panel-out); }
+.leaf-face { background: var(--page-bg); backface-visibility: hidden; }
+.leaf-front { box-shadow: inset 16px 0 26px -18px rgba(0,0,0,0.75); }
+.leaf-back  { transform: rotateY(180deg); box-shadow: inset -16px 0 26px -18px rgba(0,0,0,0.75); }
+
+/* A column of three pockets. Widths and padding must resolve identically on a
+   static page and on the leaf panel that replaces it, or the leaf visibly jumps
+   when a drag mounts it. */
+.pocket-col {
+  display: flex; flex-direction: column; width: 100%; height: 100%;
+  padding: var(--page-pad) calc(var(--pocket-gap) / 2); gap: var(--pocket-gap);
+}
+.face-grid .pocket-col { flex: none; width: var(--panel-in); }
+
+/* The outer edge of each page gets the full --page-pad. Which column that is
+   mirrors between sides: a right-hand page runs spine -> outer, a left-hand page
+   runs outer -> spine. The leaf's back face is a left-hand page, so it mirrors too. */
+.binder-side.right .pocket-col:nth-child(3),
+.leaf-col .leaf-col .leaf-col .leaf-front .pocket-col {
+  width: var(--panel-out); padding-right: var(--page-pad);
+}
+.binder-side.left .pocket-col:nth-child(1),
+.leaf-col .leaf-col .leaf-col .leaf-back .pocket-col {
+  width: var(--panel-out); padding-left: var(--page-pad);
+}
+
+/* Each card reads as its own object in a rigid toploader: bevelled plastic edge,
+   an angled specular sheen, and a drop shadow lifting it off the sheet. */
+.pocket {
+  position: relative; flex: 1 1 0; border-radius: 5px; background: #0d0d0d; overflow: hidden;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.65), inset 0 0 0 1px rgba(255,255,255,0.09);
+}
+.pocket::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; border-radius: inherit;
+  background: linear-gradient(112deg, rgba(255,255,255,0.13) 0%, rgba(255,255,255,0.03) 26%,
+                                      transparent 46%, transparent 100%);
+}
 .pocket.empty {
-  border-style: dashed; display: flex; align-items: center; justify-content: center;
+  border: 1px dashed #2a2a2a; box-shadow: none;
+  display: flex; align-items: center; justify-content: center;
   color: #444; font-size: 1.6rem; cursor: pointer; transition: border-color 0.15s, color 0.15s;
+  font-family: inherit; line-height: 1; appearance: none;
 }
+.pocket.empty::after { background: none; }
 .pocket.empty:hover { border-color: #666; color: #888; }
 .pocket img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .pocket .slot-remove {
@@ -171,34 +289,26 @@ h1 { font-size: 1.6rem; margin-bottom: 24px; font-weight: 600; }
 }
 .pocket:hover .slot-remove { display: flex; }
 
-/* Centers the back cover's Pokéball. On its own wrapper because react-pageflip
-   sets inline styles on the leaf element itself (which would override flex there). */
+/* Centers the back cover's Pokéball. */
 .cover-inner {
   width: 100%; height: 100%;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 22px; text-align: center;
 }
 
-/* Inside front cover — the blank black leaf the first page rests against. */
-.binder-book .page-inside { background: #101010; position: relative; }
-.page-inside::after { content: ''; position: absolute; right: 0; top: 0; bottom: 0; width: 22px; background: rgba(0,0,0,0.3); }
+/* The two pocketless faces that bookend the binder: the inside front cover and the
+   Pokeball back cover. Both sit flush with the card pages rather than standing out
+   as their own material, so the blue reads as the binder's shell alone. */
+.face-inside,
+.face-back { background: var(--page-bg); }
 
-/* Back cover — a rigid red leaf (data-density="hard") that ends the binder. */
-.binder-book .page-back { background: linear-gradient(145deg, #7f1d1d 0%, #450a0a 100%); border-color: #5b1414; }
-
-/* Subtle hover affordance: grab cursor + a faint folded-corner peel on the
-   page's outer bottom corner (left vs right via react-pageflip's classes). */
-.binder-book .page { cursor: grab; }
-.binder-book .page:active { cursor: grabbing; }
-.page-corner { position: absolute; bottom: 0; width: 30px; height: 30px; opacity: 0; transition: opacity 0.18s ease; pointer-events: none; z-index: 4; }
-.binder-book .page:hover .page-corner { opacity: 1; }
-.binder-book .page[class*="--right"] .page-corner { right: 0; background: linear-gradient(135deg, transparent 48%, rgba(255,255,255,0.18) 50%); }
-.binder-book .page[class*="--left"]  .page-corner { left: 0;  background: linear-gradient(225deg, transparent 48%, rgba(255,255,255,0.18) 50%); }
-
-/* Clean spine depth (replaces react-pageflip's drawn shadow): a soft inset
-   darkening toward the binding edge of each open leaf. */
-.binder-book .page[class*="--right"] { box-shadow: inset 16px 0 26px -18px rgba(0,0,0,0.75); }
-.binder-book .page[class*="--left"]  { box-shadow: inset -16px 0 26px -18px rgba(0,0,0,0.75); }
+/* ---- Binder hover tooltip (portaled to <body>, see CardTooltip.tsx) ---- */
+.binder-tip {
+  position: fixed; z-index: 300; pointer-events: none; width: 226px;
+  background: #171717; border: 1px solid #2e2e2e; border-radius: 9px; padding: 12px 14px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.6);
+}
+.binder-tip .tip-owned { font-size: 0.72rem; color: #4ade80; margin-top: 6px; }
 
 .pokeball { width: 136px; height: 136px; border-radius: 50%; border: 6px solid #111; position: relative; overflow: hidden; background: #fff; box-shadow: 0 6px 22px rgba(0,0,0,0.45), inset 0 -8px 16px rgba(0,0,0,0.12); }
 .pokeball::before { content: ''; position: absolute; inset: 0 0 50% 0; background: #ef4444; }
