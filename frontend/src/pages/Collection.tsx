@@ -9,6 +9,7 @@ export default function Collection() {
   const [view, setView] = useState<'grid' | 'binder'>('grid')
   const [sortKey, setSortKey] = useState<'name' | 'value'>('name')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+  const [filter, setFilter] = useState('')
   const [data, setData] = useState<CollectionResponse | null>(null)
   const [busy, setBusy] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
@@ -96,6 +97,15 @@ export default function Collection() {
 
   const arrow = (key: 'name' | 'value') => (sortKey === key ? (sortDir === 'asc' ? ' ↑' : ' ↓') : '')
 
+  // Filters what's already loaded rather than querying — /collection returns the
+  // whole collection up front, so narrowing costs no request per keystroke and is
+  // unrelated to the catalog search in the top bar.
+  const query = filter.trim().toLowerCase()
+  const visible = query
+    ? sortedCards.filter((c) =>
+        c.cardName.toLowerCase().includes(query) || c.setName.toLowerCase().includes(query))
+    : sortedCards
+
   return (
     <>
       <div className="collection-head">
@@ -123,6 +133,12 @@ export default function Collection() {
               {refreshing ? 'Refreshing…' : 'Refresh prices'}
             </button>
           )}
+          {view === 'grid' && cards.length > 0 && (
+            <input className="collection-search" type="search" value={filter}
+                   onChange={(e) => setFilter(e.target.value)}
+                   placeholder="Filter by name or set…" autoComplete="off"
+                   aria-label="Filter collection by card name or set" />
+          )}
         </div>
 
         {view === 'grid' && cards.length > 1 && (
@@ -142,14 +158,23 @@ export default function Collection() {
 
       {view === 'binder' && <Binder />}
 
+      {view === 'grid' && query && visible.length > 0 && (
+        <div className="card-meta" style={{ marginBottom: 12 }}>
+          {visible.length} of {cards.length} card{cards.length === 1 ? '' : 's'} match “{filter.trim()}”
+        </div>
+      )}
+
       {view === 'grid' && !data && <div className="empty-state">Loading…</div>}
       {view === 'grid' && data && cards.length === 0 && (
         <div className="empty-state">Your collection is empty. Search for cards to add.</div>
       )}
+      {view === 'grid' && cards.length > 0 && visible.length === 0 && (
+        <div className="empty-state">No cards in your collection match “{filter.trim()}”.</div>
+      )}
 
-      {view === 'grid' && cards.length > 0 && (
+      {view === 'grid' && visible.length > 0 && (
         <div className="card-grid">
-          {sortedCards.map((c) => (
+          {visible.map((c) => (
             <div className="card" key={c.cardId}>
               <img src={cardImageUrl(c.cardId)} alt={c.cardName} loading="lazy"
                    onError={onCardImageError} />

@@ -4,7 +4,7 @@ import { api, type CardDto, type SearchResponse } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import CardGrid from '../components/CardGrid'
 import Pagination from '../components/Pagination'
-import CardRain from '../components/CardRain'
+import CardSwirl from '../components/CardSwirl'
 
 export default function Home({ onSignIn }: { onSignIn: () => void }) {
   const [params, setParams] = useSearchParams()
@@ -56,10 +56,10 @@ export default function Home({ onSignIn }: { onSignIn: () => void }) {
   if (!active) {
     return (
       <>
-        <CardRain />
+        <CardSwirl />
         <div className="hero">
-          <h1>Find any Pokémon card.</h1>
-          <p>Search the modern catalog and build your collection.</p>
+          <h1>Find any Pokémon card</h1>
+          <p>Search the modern catalog and build your collection</p>
           {!user && (
             <button className="btn" style={{ marginTop: 20 }} onClick={onSignIn}>Sign in to start collecting</button>
           )}
