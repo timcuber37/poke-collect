@@ -518,9 +518,15 @@ h1 { font-size: 1.6rem; margin-bottom: 24px; font-weight: 600; }
 /* ---- Card scanner ---- */
 .scan-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 8px; }
 .scan-hint { color: #888; font-size: 0.9rem; margin: 0 0 18px; }
+/* Portrait, card-shaped viewport. A 16/9 stage left two-thirds of its width as dead
+   background either side of the portrait guide; matching the guide's own 5/7 ratio
+   leaves only a thin border around the capture zone. The webcam's wider field is
+   center-cropped by `object-fit: cover`, which guideRegion() already accounts for —
+   and since the guide is still 82% of the stage height, the card's native pixel
+   height (and so OCR quality) is unchanged. Height is capped against short viewports. */
 .scan-stage {
-  position: relative; width: 100%; max-width: 720px; margin: 0 auto;
-  aspect-ratio: 16 / 9; background: #000; border: 1px solid #262626; border-radius: 12px; overflow: hidden;
+  position: relative; width: 100%; max-width: min(400px, 58vh); margin: 0 auto;
+  aspect-ratio: 5 / 7; background: #000; border: 1px solid #262626; border-radius: 12px; overflow: hidden;
 }
 .scan-video { width: 100%; height: 100%; object-fit: cover; display: block; }
 /* Card-shaped (2.5:3.5) placement guide centered over the feed. */
